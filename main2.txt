@@ -1,0 +1,84 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  // Configura un buffer personalizado para manejar mensajes
+  setupCustomBuffer();
+
+  runApp(MyApp());
+}
+
+// Buffer personalizado para almacenar mensajes temporales
+final List<dynamic> _messageBuffer = [];
+bool _listenerRegistered = false;
+
+Future<void> setupCustomBuffer() async {
+  try {
+    // Simula el registro del listener después de un retraso
+    await Future.delayed(Duration(seconds: 2));
+    _listenerRegistered = true;
+    print('Listener registrado');
+    // Procesa los mensajes almacenados en el buffer
+    for (var message in _messageBuffer) {
+      handleMessage(message);
+    }
+    _messageBuffer.clear();
+  } catch (e) {
+    print('Error en setupCustomBuffer: $e');
+  }
+}
+
+void handleMessage(dynamic message) {
+  try {
+    print('Mensaje recibido: $message');
+  } catch (e) {
+    print('Error al manejar mensaje: $e');
+  }
+}
+
+void sendMessage(dynamic message) {
+  if (_listenerRegistered) {
+    // Si el listener está registrado, procesa el mensaje inmediatamente
+    handleMessage(message);
+  } else {
+    // Si el listener no está registrado, almacena el mensaje en el buffer
+    try {
+      _messageBuffer.add(message);
+      print('Mensaje almacenado en el buffer');
+    } catch (e) {
+      print('Error al almacenar mensaje en el buffer: $e');
+    }
+  }
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: MyHomePage(),
+    );
+  }
+}
+
+class MyHomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Flutter Lifecycle Example'),
+      ),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            // Simula el envío de un mensaje desde un plugin
+            sendMessage('Hola desde el plugin');
+          },
+          child: Text('Enviar mensaje'),
+        ),
+      ),
+    );
+  }
+}
