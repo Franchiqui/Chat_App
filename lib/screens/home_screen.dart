@@ -7,6 +7,7 @@ import '../providers/chat_provider.dart';
 import '../providers/group_provider.dart';
 import '../widgets/chat_list_item.dart';
 import '../widgets/group_list_item.dart';
+import '../config/pocketbase_config.dart';
 import 'auth/login_screen.dart';
 import 'chat_screen.dart';
 import 'group_chat_screen.dart';
@@ -255,14 +256,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         itemBuilder: (context, index) {
                           final user = searchResults[index];
                           return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: user['avatar'] != null && user['avatar'].toString().isNotEmpty
-                                  ? NetworkImage(user['avatar'])
-                                  : null,
-                              child: user['avatar'] == null || user['avatar'].toString().isEmpty
-                                  ? Text(user['displayName'][0].toUpperCase())
-                                  : null,
-                            ),
+                            leading: Builder(
+  builder: (context) {
+    final pb = PocketBaseConfig.pb;
+    final baseUrl = pb.baseUrl;
+    final rawAvatarUrl = user['avatar']?.toString();
+    String? avatarUrl;
+    if (rawAvatarUrl != null && rawAvatarUrl.isNotEmpty) {
+      if (rawAvatarUrl.startsWith('http')) {
+        avatarUrl = rawAvatarUrl;
+      } else {
+        avatarUrl = baseUrl.endsWith('/')
+            ? baseUrl + 'api/files/' + PocketBaseConfig.usersCollection + '/' + user['id'] + '/' + rawAvatarUrl
+            : baseUrl + '/api/files/' + PocketBaseConfig.usersCollection + '/' + user['id'] + '/' + rawAvatarUrl;
+      }
+    }
+    // Debug print
+    print('[UserSearchDialog] Avatar URL for user: ' + (avatarUrl ?? 'null'));
+    return CircleAvatar(
+      backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+      child: avatarUrl == null
+          ? Text(user['displayName'][0].toUpperCase())
+          : null,
+    );
+  },
+),
                             title: Text(user['displayName']),
                             subtitle: Text(user['username']),
                             onTap: () async {
