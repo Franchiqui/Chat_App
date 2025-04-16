@@ -22,14 +22,18 @@ class MessageProvider with ChangeNotifier {
   Future<void> getChatMessages(String chatId) async {
     _isLoading = true;
     _currentChatId = chatId;
+    print('[MessageProvider] getChatMessages: chatId=$_currentChatId');
     notifyListeners();
 
     try {
       _messages = await _messageService.getChatMessages(chatId);
+      print('[MessageProvider] Mensajes cargados (${_messages.length}): ${_messages.map((m) => m.id).toList()}');
       notifyListeners();
+      print('[MessageProvider] notifyListeners después de cargar mensajes');
     } finally {
       _isLoading = false;
       notifyListeners();
+      print('[MessageProvider] notifyListeners después de isLoading=false');
     }
   }
 
@@ -90,11 +94,18 @@ class MessageProvider with ChangeNotifier {
   }
 
   void addMessage(MessageModel message) {
+    print('[MessageProvider] addMessage: idChat=${message.idChat}, currentChatId=$_currentChatId, id=${message.id}');
     if (message.idChat == _currentChatId) {
       if (!_messages.any((m) => m.id == message.id)) {
         _messages.add(message);
+        print('[MessageProvider] Mensaje agregado (${message.id}). Total ahora: ${_messages.length}');
         notifyListeners();
+        print('[MessageProvider] notifyListeners después de addMessage');
+      } else {
+        print('[MessageProvider] Mensaje duplicado, no se agrega (${message.id})');
       }
+    } else {
+      print('[MessageProvider] Mensaje ignorado: idChat=${message.idChat} != $_currentChatId');
     }
   }
 }

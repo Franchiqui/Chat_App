@@ -45,11 +45,12 @@ class MyApp extends StatelessWidget {
         ),
         home: Consumer<AuthProvider>(
           builder: (context, authProvider, _) {
-            return authProvider.isAuthenticated ? const HomeScreen() : const LoginScreen();
+            return authProvider.isAuthenticated
+                ? const HomeScreen()
+                : const LoginScreen();
           },
         ),
       ),
     );
   }
-  
 }
