@@ -114,7 +114,11 @@ class ChatService {
       'horaChat': hora,
       'ultimoMensaje': '',
     };
+    print('[DEBUG][ChatService] Datos enviados a PocketBase:');
+    print(data);
     final record = await pb.collection(PocketBaseConfig.chatsCollection).create(body: data);
+    print('[DEBUG][ChatService] Registro creado PocketBase:');
+    print(record.toJson());
     return ChatModel.fromJson(record.toJson());
   }
 

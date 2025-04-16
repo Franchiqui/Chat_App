@@ -309,6 +309,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   );
 }
 Future<void> _createChatWithUser(Map<String, dynamic> user) async {
+  print('[DEBUG] Usuario seleccionado para crear chat:');
+  print(user);
   final authProvider = Provider.of<AuthProvider>(context, listen: false);
   final chatProvider = Provider.of<ChatProvider>(context, listen: false);
 
@@ -333,10 +335,13 @@ Future<void> _createChatWithUser(Map<String, dynamic> user) async {
 
   final otherUser = UserModel(
     id: otherUserId,
-    username: user['username'] ?? '', // <-- Valor predeterminado
-    displayName_A: user['displayName_A'] ?? 'Usuario sin nombre', // <-- Valor predeterminado
-    avatar: user['avatar'], // Este campo puede ser null
+    username: user['username'] ?? '',
+    displayName_A: user['displayName_A'] ?? user['displayName'] ?? 'Usuario sin nombre',
+    avatar: user['avatar'],
   );
+  print('[DEBUG] Datos para crear chat:');
+  print('currentUser: id=${currentUser.id}, username=${currentUser.username}, displayName_A=${currentUser.displayName_A}, avatar=${currentUser.avatar}');
+  print('otherUser: id=${otherUser.id}, username=${otherUser.username}, displayName_A=${otherUser.displayName_A}, avatar=${otherUser.avatar}');
 
   final newChat = await chatProvider.createChat(currentUser, otherUser);
 
