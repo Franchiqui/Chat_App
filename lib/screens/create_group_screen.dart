@@ -25,26 +25,37 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     super.dispose();
   }
 
-  Future<void> _searchUsers(String query) async {
-    if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-      });
-      return;
-    }
+  // En lib/screens/create_group_screen.dart
 
-    // Aquí implementarías la búsqueda de usuarios en PocketBase
-    // Por ahora, usaremos datos de ejemplo
-    await Future.delayed(const Duration(milliseconds: 500));
+Future<void> _searchUsers(String query) async {
+  setState(() {
+    _isLoading = true;
+  });
+  
+  try {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final results = await authProvider.searchUsers(query);
+    
+    if (!mounted) return;
     
     setState(() {
-      _searchResults = [
-        {'id': 'user1', 'username': 'usuario1', 'displayName': 'Usuario Uno'},
-        {'id': 'user2', 'username': 'usuario2', 'displayName': 'Usuario Dos'},
-        {'id': 'user3', 'username': 'usuario3', 'displayName': 'Usuario Tres'},
-      ];
+      _searchResults = results;
+      _isLoading = false;
     });
+  } catch (e) {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = false;
+      _searchResults = [];
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error al buscar usuarios: ${e.toString()}')),
+    );
   }
+}
+
 
   void _toggleUserSelection(String userId) {
     setState(() {
@@ -146,33 +157,35 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               ),
               const SizedBox(height: 10),
               Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                        itemCount: _searchResults.length,
-                        itemBuilder: (context, index) {
-                          final user = _searchResults[index];
-                          final bool isSelected = _selectedUsers.contains(user['id']);
-                          
-                          return ListTile(
-                            leading: CircleAvatar(
-                              child: Text(user['displayName'][0].toUpperCase()),
-                            ),
-                            title: Text(user['displayName']),
-                            subtitle: Text(user['username']),
-                            trailing: Checkbox(
-                              value: isSelected,
-                              onChanged: (value) {
-                                _toggleUserSelection(user['id']);
-                              },
-                            ),
-                            onTap: () {
-                              _toggleUserSelection(user['id']);
-                            },
-                          );
-                        },
-                      ),
+                child: Builder(
+                  builder: (context) {
+                    if (_isLoading) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+
+                    if (_searchResults.isEmpty) {
+                      return Center(child: Text('No se encontraron usuarios'));
+                    }
+
+                    return ListView.builder(
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        final user = _searchResults[index];
+                        return ListTile(
+                          title: Text(user['displayName'] ?? user['username']),
+                          subtitle: Text('@${user['username']}'),
+                          onTap: () => _toggleUserSelection(user['id']),
+                          // Mostrar un check si el usuario está seleccionado
+                          trailing: _selectedUsers.contains(user['id']) 
+                              ? Icon(Icons.check, color: Colors.blue) 
+                              : null,
+                        );
+                      },
+                    );
+                  }
+                ),
               ),
+
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,

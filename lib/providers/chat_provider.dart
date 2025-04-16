@@ -1,5 +1,6 @@
 // lib/providers/chat_provider.dart
 import 'package:flutter/foundation.dart';
+import 'package:collection/collection.dart';
 import '../services/chat_service.dart';
 import '../models/chat_model.dart';
 import '../models/user_model.dart';
@@ -65,7 +66,6 @@ class ChatProvider with ChangeNotifier {
 
   // Obtener un chat por su ID
   ChatModel? getChatById(String chatId) {
-    // ignore: cast_from_null_always_fails
-    return _chats.firstWhere((chat) => chat.id == chatId, orElse: () => null as ChatModel);
-  }
+  return _chats.firstWhereOrNull((chat) => chat.id == chatId);
+}
 }

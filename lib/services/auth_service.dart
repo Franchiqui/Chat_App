@@ -67,4 +67,34 @@ class AuthService {
       avatarUrl: record.data['avatar'],
     );
   }
+
+  // En lib/services/auth_service.dart
+
+Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+  try {
+    if (query.isEmpty) return [];
+    final results = await pb.collection('users').getList(
+      page: 1,
+      perPage: 10,
+      filter: 'username ~ "$query" || displayName_A ~ "$query"',
+    );
+    List<Map<String, dynamic>> users = [];
+    for (var item in results.items) {
+      if (item.id != pb.authStore.model?.id) {
+        users.add({
+          'id': item.id,
+          'username': item.data['username'],
+          'displayName': item.data['displayName_A'] ?? item.data['username'],
+          'avatar': item.data['avatar'] ?? '',
+        });
+      }
+    }
+    print('Usuarios encontrados: $users'); // Depuración
+    return users;
+  } catch (e) {
+    print('Error al buscar usuarios: $e');
+    return [];
+  }
+}
+
 }

@@ -20,4 +20,6 @@ class UserModel {
       avatarUrl: json['avatar'],
     );
   }
+
+  get avatar => null;
 }

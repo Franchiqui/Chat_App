@@ -2,7 +2,7 @@
 import 'package:pocketbase/pocketbase.dart';
 
 class PocketBaseConfig {
-  static final PocketBase pb = PocketBase('https://pocketbase-chat.fly.dev');
+  static final PocketBase pb = PocketBase('https://pocketbase-chat-2.fly.dev');
   
   // Colecciones
   static const String usersCollection = '_pb_users_auth_';

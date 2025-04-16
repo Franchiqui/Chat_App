@@ -58,17 +58,18 @@ class _ChatScreenState extends State<ChatScreen> {
       if (e.action != 'create') return;
       // lib/screens/chat_screen.dart (continuación)
       if (e.action != 'create') return;
-      
+
       final message = MessageModel.fromJson(e.record!.toJson());
       if (message.idChat == widget.chatId) {
-        Provider.of<MessageProvider>(context, listen: false).addMessage(message);
-        
+        Provider.of<MessageProvider>(context, listen: false)
+            .addMessage(message);
+
         // Actualizar el último mensaje en la lista de chats
         if (message.texto.isNotEmpty) {
           Provider.of<ChatProvider>(context, listen: false)
               .updateLastMessage(widget.chatId, message.texto);
         }
-        
+
         _scrollToBottom();
       }
     });
@@ -92,7 +93,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    final messageProvider = Provider.of<MessageProvider>(context, listen: false);
+    final messageProvider =
+        Provider.of<MessageProvider>(context, listen: false);
 
     final chat = chatProvider.getChatById(widget.chatId);
     if (chat == null || authProvider.user == null) return;
@@ -115,7 +117,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _pickImage() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    final messageProvider = Provider.of<MessageProvider>(context, listen: false);
+    final messageProvider =
+        Provider.of<MessageProvider>(context, listen: false);
 
     final chat = chatProvider.getChatById(widget.chatId);
     if (chat == null || authProvider.user == null) return;
@@ -144,7 +147,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _pickFile() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    final messageProvider = Provider.of<MessageProvider>(context, listen: false);
+    final messageProvider =
+        Provider.of<MessageProvider>(context, listen: false);
 
     final chat = chatProvider.getChatById(widget.chatId);
     if (chat == null || authProvider.user == null) return;
@@ -199,7 +203,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final messageProvider = Provider.of<MessageProvider>(context);
 
     if (!authProvider.isAuthenticated || authProvider.user == null) {
-      return const Scaffold(body: Center(child: Text('No has iniciado sesión')));
+      return const Scaffold(
+          body: Center(child: Text('No has iniciado sesión')));
     }
 
     final chat = chatProvider.getChatById(widget.chatId);
@@ -221,7 +226,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   ? NetworkImage(avatarUrl)
                   : null,
               child: avatarUrl == null || avatarUrl.isEmpty
-                  ? Text(displayName.isNotEmpty ? displayName[0].toUpperCase() : '?')
+                  ? Text(displayName.isNotEmpty
+                      ? displayName[0].toUpperCase()
+                      : '?')
                   : null,
             ),
             const SizedBox(width: 8),
@@ -249,7 +256,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (context, index) {
                           final message = messageProvider.messages[index];
                           final isMe = message.user1 == currentUserId;
-                          
                           return MessageBubble(
                             message: message,
                             isMe: isMe,
@@ -262,7 +268,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           if (_isAttaching)
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
               color: Colors.grey[200],
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -313,7 +320,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 10.0),
                     ),
                     textCapitalization: TextCapitalization.sentences,
                     onSubmitted: (_) => _sendMessage(),

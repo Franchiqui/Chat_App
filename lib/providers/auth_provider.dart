@@ -85,4 +85,27 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // En lib/providers/auth_provider.dart
+
+Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+  try {
+    _isLoading = true;
+    notifyListeners();
+    
+    final users = await _authService.searchUsers(query);
+    
+    _isLoading = false;
+    notifyListeners();
+    
+    return users;
+  } catch (e) {
+    _isLoading = false;
+    notifyListeners();
+    
+    // Retornar una lista vacía en caso de error
+    return [];
+  }
+}
+
 }
