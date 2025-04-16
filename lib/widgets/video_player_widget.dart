@@ -4,7 +4,8 @@ import 'package:video_player/video_player.dart';
 class VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
   final String? fileName;
-  const VideoPlayerWidget({Key? key, required this.videoUrl, this.fileName}) : super(key: key);
+  const VideoPlayerWidget({Key? key, required this.videoUrl, this.fileName})
+      : super(key: key);
 
   @override
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
@@ -54,7 +55,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   void _enterFullscreen() async {
-
     await showDialog(
       context: context,
       barrierColor: Colors.black,
@@ -75,7 +75,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                   top: 20,
                   right: 20,
                   child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 32),
+                    icon:
+                        const Icon(Icons.close, color: Colors.white, size: 32),
                     onPressed: () => Navigator.of(ctx).pop(),
                   ),
                 ),
@@ -86,7 +87,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         );
       },
     );
-  
   }
 
   String _formatDuration(Duration d) {
@@ -99,14 +99,15 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   Widget _buildControls({bool fullscreen = false}) {
     if (!_showControls) return const SizedBox.shrink();
     final isPlaying = _controller.value.isPlaying;
-    final duration = _controller.value.duration ?? Duration.zero;
+    final duration = _controller.value.duration;
     final position = _controller.value.position;
     return Positioned(
       left: 0,
       right: 0,
       bottom: 0,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: fullscreen ? 24 : 8, vertical: 10),
+        padding:
+            EdgeInsets.symmetric(horizontal: fullscreen ? 24 : 8, vertical: 10),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.black54, Colors.transparent],
@@ -118,12 +119,17 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (widget.fileName != null && widget.fileName!.isNotEmpty && fullscreen)
+            if (widget.fileName != null &&
+                widget.fileName!.isNotEmpty &&
+                fullscreen)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
                   widget.fileName!,
-                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -131,7 +137,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               children: [
                 IconButton(
                   icon: Icon(
-                    isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled,
                     color: Colors.white,
                     size: fullscreen ? 38 : 28,
                   ),
@@ -141,7 +149,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 3.5,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                      thumbShape:
+                          const RoundSliderThumbShape(enabledThumbRadius: 8),
                       overlayShape: SliderComponentShape.noOverlay,
                       activeTrackColor: Colors.blue.shade400,
                       inactiveTrackColor: Colors.blue.shade100,
@@ -149,8 +158,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     ),
                     child: Slider(
                       min: 0,
-                      max: duration.inMilliseconds.toDouble().clamp(1, double.infinity),
-                      value: position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble(),
+                      max: duration.inMilliseconds
+                          .toDouble()
+                          .clamp(1, double.infinity),
+                      value: position.inMilliseconds
+                          .clamp(0, duration.inMilliseconds)
+                          .toDouble(),
                       onChanged: (v) async {
                         final newPos = Duration(milliseconds: v.toInt());
                         await _controller.seekTo(newPos);
@@ -162,11 +175,15 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                   padding: const EdgeInsets.only(left: 8.0),
                   child: Text(
                     '${_formatDuration(position)} / ${_formatDuration(duration)}',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w400),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.fullscreen, color: Colors.white, size: 24),
+                  icon: const Icon(Icons.fullscreen,
+                      color: Colors.white, size: 24),
                   onPressed: _enterFullscreen,
                 ),
               ],

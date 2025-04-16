@@ -21,7 +21,8 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = false;
 
@@ -39,24 +40,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _loadData() async {
-  if (!mounted) return;
+    if (!mounted) return;
 
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    // Declara los providers correctamente
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+    try {
+      // Declara los providers correctamente
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
 
-    if (authProvider.isAuthenticated && authProvider.user != null) {
-      await chatProvider.getUserChats(authProvider.user!.id);
-      await groupProvider.getUserGroups(authProvider.user!.id);
+      if (authProvider.isAuthenticated && authProvider.user != null) {
+        await chatProvider.getUserChats(authProvider.user!.id);
+        await groupProvider.getUserGroups(authProvider.user!.id);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
   }
-}
 
   Future<void> _refresh() async {
     await _loadData();
@@ -153,7 +154,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) => GroupChatScreen(groupId: group.id),
+                                    builder: (_) =>
+                                        GroupChatScreen(groupId: group.id),
                                   ),
                                 );
                               },
@@ -179,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           const SizedBox(height: 16),
           FloatingActionButton(
             onPressed: () {
-           _showUserSearchDialog(context);
+              _showUserSearchDialog(context);
             },
             heroTag: 'createChat',
             child: const Icon(Icons.chat),
@@ -190,167 +192,194 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   void _showUserSearchDialog(BuildContext context) {
-  final TextEditingController searchController = TextEditingController();
-  
-  showDialog(
-    context: context,
-    builder: (context) {
-      List<Map<String, dynamic>> searchResults = [];
-      bool isLoading = true; // Inicialmente cargando
-      
-      return StatefulBuilder(
-        builder: (context, setState) {
-          // Cargar todos los usuarios al abrir el diálogo
-          if (isLoading) {
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
-            authProvider.searchUsers('').then((users) {
-              setState(() {
-                searchResults = users;
-                isLoading = false;
+    final TextEditingController searchController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        List<Map<String, dynamic>> searchResults = [];
+        bool isLoading = true; // Inicialmente cargando
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // Cargar todos los usuarios al abrir el diálogo
+            if (isLoading) {
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
+              authProvider.searchUsers('').then((users) {
+                setState(() {
+                  searchResults = users;
+                  isLoading = false;
+                });
               });
-            });
-          }
-          
-          return AlertDialog(
-            title: const Text('Seleccionar usuario'),
-            content: Container(
-              width: double.maxFinite,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: searchController,
-                    decoration: const InputDecoration(
-                      labelText: 'Buscar usuario',
-                      hintText: 'Ingresa el nombre de usuario',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (query) async {
-                      setState(() {
-                        isLoading = true;
-                      });
-                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                      final results = await authProvider.searchUsers(query);
-                      setState(() {
-                        searchResults = results;
-                        isLoading = false;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  if (isLoading)
-                    const Center(
-                      child: CircularProgressIndicator(),
-                    )
-                  else if (searchResults.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('No se encontraron usuarios'),
-                    )
-                  else
-                    Expanded(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: searchResults.length,
-                        itemBuilder: (context, index) {
-                          final user = searchResults[index];
-                          return ListTile(
-                            leading: Builder(
-  builder: (context) {
-    final pb = PocketBaseConfig.pb;
-    final baseUrl = pb.baseUrl;
-    final rawAvatarUrl = user['avatar']?.toString();
-    String? avatarUrl;
-    if (rawAvatarUrl != null && rawAvatarUrl.isNotEmpty) {
-      if (rawAvatarUrl.startsWith('http')) {
-        avatarUrl = rawAvatarUrl;
-      } else {
-        avatarUrl = baseUrl.endsWith('/')
-            ? baseUrl + 'api/files/' + PocketBaseConfig.usersCollection + '/' + user['id'] + '/' + rawAvatarUrl
-            : baseUrl + '/api/files/' + PocketBaseConfig.usersCollection + '/' + user['id'] + '/' + rawAvatarUrl;
-      }
-    }
-    // Debug print
-    print('[UserSearchDialog] Avatar URL for user: ' + (avatarUrl ?? 'null'));
-    return CircleAvatar(
-      backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-      child: avatarUrl == null
-          ? Text(user['displayName'][0].toUpperCase())
-          : null,
-    );
-  },
-),
-                            title: Text(user['displayName']),
-                            subtitle: Text(user['username']),
-                            onTap: () async {
-                              Navigator.of(context).pop(); // Cerrar el diálogo
-                              await _createChatWithUser(user); // Crear o navegar al chat
-                            },
-                          );
-                        },
+            }
+
+            return AlertDialog(
+              title: const Text('Seleccionar usuario'),
+              content: Container(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: searchController,
+                      decoration: const InputDecoration(
+                        labelText: 'Buscar usuario',
+                        hintText: 'Ingresa el nombre de usuario',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
                       ),
+                      onChanged: (query) async {
+                        setState(() {
+                          isLoading = true;
+                        });
+                        final authProvider =
+                            Provider.of<AuthProvider>(context, listen: false);
+                        final results = await authProvider.searchUsers(query);
+                        setState(() {
+                          searchResults = results;
+                          isLoading = false;
+                        });
+                      },
                     ),
-                ],
+                    const SizedBox(height: 10),
+                    if (isLoading)
+                      const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    else if (searchResults.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text('No se encontraron usuarios'),
+                      )
+                    else
+                      Expanded(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: searchResults.length,
+                          itemBuilder: (context, index) {
+                            final user = searchResults[index];
+                            return ListTile(
+                              leading: Builder(
+                                builder: (context) {
+                                  final pb = PocketBaseConfig.pb;
+                                  final baseUrl = pb.baseUrl;
+                                  final rawAvatarUrl =
+                                      user['avatar']?.toString();
+                                  String? avatarUrl;
+                                  if (rawAvatarUrl != null &&
+                                      rawAvatarUrl.isNotEmpty) {
+                                    if (rawAvatarUrl.startsWith('http')) {
+                                      avatarUrl = rawAvatarUrl;
+                                    } else {
+                                      avatarUrl = baseUrl.endsWith('/')
+                                          ? baseUrl +
+                                              'api/files/' +
+                                              PocketBaseConfig.usersCollection +
+                                              '/' +
+                                              user['id'] +
+                                              '/' +
+                                              rawAvatarUrl
+                                          : baseUrl +
+                                              '/api/files/' +
+                                              PocketBaseConfig.usersCollection +
+                                              '/' +
+                                              user['id'] +
+                                              '/' +
+                                              rawAvatarUrl;
+                                    }
+                                  }
+                                  // Debug print
+                                  print(
+                                      '[UserSearchDialog] Avatar URL for user: ' +
+                                          (avatarUrl ?? 'null'));
+                                  return CircleAvatar(
+                                    backgroundImage: avatarUrl != null
+                                        ? NetworkImage(avatarUrl)
+                                        : null,
+                                    child: avatarUrl == null
+                                        ? Text(user['displayName'][0]
+                                            .toUpperCase())
+                                        : null,
+                                  );
+                                },
+                              ),
+                              title: Text(user['displayName']),
+                              subtitle: Text(user['username']),
+                              onTap: () async {
+                                Navigator.of(context)
+                                    .pop(); // Cerrar el diálogo
+                                await _createChatWithUser(
+                                    user); // Crear o navegar al chat
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Cancelar'),
-              ),
-            ],
-          );
-        },
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancelar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _createChatWithUser(Map<String, dynamic> user) async {
+    print('[DEBUG] Usuario seleccionado para crear chat:');
+    print(user);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+
+    if (authProvider.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No has iniciado sesión')),
       );
-    },
-  );
-}
-Future<void> _createChatWithUser(Map<String, dynamic> user) async {
-  print('[DEBUG] Usuario seleccionado para crear chat:');
-  print(user);
-  final authProvider = Provider.of<AuthProvider>(context, listen: false);
-  final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      return;
+    }
 
-  if (authProvider.user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No has iniciado sesión')),
+    final currentUserId = authProvider.user!.id;
+    final otherUserId = user['id'];
+    final currentDisplayName = authProvider.user!.displayName_A;
+
+    final currentUser = UserModel(
+      id: currentUserId,
+      username: authProvider.user!.username,
+      displayName_A: currentDisplayName,
+      avatar: authProvider.user!.avatar,
     );
-    return;
-  }
 
-  final currentUserId = authProvider.user!.id;
-  final otherUserId = user['id'];
-  final currentDisplayName = authProvider.user!.displayName_A;
-  final otherDisplayName = user['displayName'];
-
-  final currentUser = UserModel(
-    id: currentUserId,
-    username: authProvider.user!.username,
-    displayName_A: currentDisplayName,
-    avatar: authProvider.user!.avatar,
-  );
-
-  final otherUser = UserModel(
-    id: otherUserId,
-    username: user['username'] ?? '',
-    displayName_A: user['displayName_A'] ?? user['displayName'] ?? 'Usuario sin nombre',
-    avatar: user['avatar'],
-  );
-  print('[DEBUG] Datos para crear chat:');
-  print('currentUser: id=${currentUser.id}, username=${currentUser.username}, displayName_A=${currentUser.displayName_A}, avatar=${currentUser.avatar}');
-  print('otherUser: id=${otherUser.id}, username=${otherUser.username}, displayName_A=${otherUser.displayName_A}, avatar=${otherUser.avatar}');
-
-  final newChat = await chatProvider.createChat(currentUser, otherUser);
-
-  if (mounted) { // Verificar antes de navegar
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(chatId: newChat.id),
-      ),
+    final otherUser = UserModel(
+      id: otherUserId,
+      username: user['username'] ?? '',
+      displayName_A:
+          user['displayName_A'] ?? user['displayName'] ?? 'Usuario sin nombre',
+      avatar: user['avatar'],
     );
+    print('[DEBUG] Datos para crear chat:');
+    print(
+        'currentUser: id=${currentUser.id}, username=${currentUser.username}, displayName_A=${currentUser.displayName_A}, avatar=${currentUser.avatar}');
+    print(
+        'otherUser: id=${otherUser.id}, username=${otherUser.username}, displayName_A=${otherUser.displayName_A}, avatar=${otherUser.avatar}');
+
+    final newChat = await chatProvider.createChat(currentUser, otherUser);
+
+    if (mounted) {
+      // Verificar antes de navegar
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(chatId: newChat.id),
+        ),
+      );
+    }
   }
-}
 }

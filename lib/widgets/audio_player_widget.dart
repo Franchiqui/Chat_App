@@ -5,11 +5,11 @@ import 'dart:async';
 class AudioPlayerWidget extends StatefulWidget {
   final String audioUrl;
   final String? fileName;
-  const AudioPlayerWidget({Key? key, required this.audioUrl, this.fileName}) : super(key: key);
+  const AudioPlayerWidget({Key? key, required this.audioUrl, this.fileName})
+      : super(key: key);
 
   @override
   State<AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
-
 }
 
 class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
@@ -23,7 +23,6 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
 
   final AudioPlayer _player = AudioPlayer();
   bool _isPlaying = false;
-  double _progress = 0.0;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   StreamSubscription<Duration>? _positionSub;
@@ -33,40 +32,28 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
   void initState() {
     super.initState();
     _initAudio();
-  
-}
+  }
 
   Future<void> _initAudio() async {
     try {
       await _player.setUrl(widget.audioUrl);
       _duration = _player.duration ?? Duration.zero;
-      setState(() {
-});
+      setState(() {});
       _positionSub = _player.positionStream.listen((pos) {
         setState(() {
           _position = pos;
           _duration = _player.duration ?? Duration.zero;
-          _progress = _duration.inMilliseconds > 0
-              ? _position.inMilliseconds / _duration.inMilliseconds
-              : 0.0;
-        
-});
-      
-});
+        });
+      });
       _playerStateSub = _player.playerStateStream.listen((state) {
         setState(() {
           _isPlaying = state.playing;
-        
-});
-      
-});
-    
-} catch (e) {
+        });
+      });
+    } catch (e) {
       // Si la url no es válida, ignora
-    
-}
-  
-}
+    }
+  }
 
   @override
   void dispose() {
@@ -74,27 +61,22 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
     _playerStateSub?.cancel();
     _player.dispose();
     super.dispose();
-  
-}
+  }
 
   Future<void> _togglePlayback() async {
     if (_isPlaying) {
       await _player.pause();
-    
-} else {
+    } else {
       await _player.play();
-    
-}
-  
-}
+    }
+  }
 
   String _formatDuration(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final m = twoDigits(d.inMinutes.remainder(60));
     final s = twoDigits(d.inSeconds.remainder(60));
     return '$m:$s';
-  
-}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +123,8 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: _isPlaying ? Colors.blue.shade100 : Colors.blue.shade50,
+                    color:
+                        _isPlaying ? Colors.blue.shade100 : Colors.blue.shade50,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
@@ -163,7 +146,8 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                 child: SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     trackHeight: 3.5,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 8),
                     overlayShape: SliderComponentShape.noOverlay,
                     activeTrackColor: Colors.blue.shade400,
                     inactiveTrackColor: Colors.blue.shade100,
@@ -171,13 +155,16 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                   ),
                   child: Slider(
                     min: 0,
-                    max: _duration.inMilliseconds.toDouble().clamp(1, double.infinity),
-                    value: _position.inMilliseconds.clamp(0, _duration.inMilliseconds).toDouble(),
+                    max: _duration.inMilliseconds
+                        .toDouble()
+                        .clamp(1, double.infinity),
+                    value: _position.inMilliseconds
+                        .clamp(0, _duration.inMilliseconds)
+                        .toDouble(),
                     onChanged: (v) async {
                       final newPos = Duration(milliseconds: v.toInt());
                       await _player.seek(newPos);
-                    
-},
+                    },
                   ),
                 ),
               ),
@@ -187,11 +174,17 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
                 children: [
                   Text(
                     _formatDuration(_position),
-                    style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade700, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blueGrey.shade700,
+                        fontWeight: FontWeight.w600),
                   ),
                   Text(
                     _formatDuration(_duration),
-                    style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade400, fontWeight: FontWeight.w400),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blueGrey.shade400,
+                        fontWeight: FontWeight.w400),
                   ),
                 ],
               ),
@@ -200,9 +193,7 @@ class _AudioPlayerWidgetState extends State<AudioPlayerWidget> {
         ],
       ),
     );
-  
-}
-
+  }
 }
 
 class _WaveformPainter extends CustomPainter {
@@ -222,13 +213,10 @@ class _WaveformPainter extends CustomPainter {
       final x = i * size.width / (waveCount - 1);
       final y = midY + amplitude * (i % 2 == 0 ? 1 : -1) * (progress);
       canvas.drawCircle(Offset(x, y), 2.5, paint);
-    
-}
-  
-}
+    }
+  }
 
   @override
   bool shouldRepaint(_WaveformPainter oldDelegate) =>
       oldDelegate.progress != progress;
-
 }

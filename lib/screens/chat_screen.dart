@@ -230,17 +230,21 @@ class _ChatScreenState extends State<ChatScreen> {
       if (kIsWeb) {
         // En web usamos bytes y filename
         final Uint8List? fileBytes = result.files.single.bytes;
-        if (fileBytes != null) {
-          await messageProvider.sendFileMessage(
-            chatId: widget.chatId,
-            currentUserId: currentUserId,
-            otherUserId: otherUserId,
-            file: fileBytes,
-            tipo: tipo,
-            text: messageText,
-            fileName: fileName,
+        if (fileBytes == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se pudo leer el archivo.')),
           );
+          return;
         }
+        await messageProvider.sendFileMessage(
+          chatId: widget.chatId,
+          currentUserId: currentUserId,
+          otherUserId: otherUserId,
+          file: fileBytes,
+          tipo: tipo,
+          text: messageText,
+          fileName: fileName,
+        );
       } else {
         // En móvil usamos File
         final String? filePath = result.files.single.path;

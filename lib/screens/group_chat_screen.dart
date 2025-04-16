@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:pocketbase/pocketbase.dart';
 import '../config/pocketbase_config.dart';
 import '../providers/auth_provider.dart';
@@ -61,8 +63,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     pb.collection(PocketBaseConfig.groupMessagesCollection).subscribe('*', (e) {
       if (e.action != 'create') return;
       final data = e.record!.toJson();
-      if (data['grupo'] == widget.groupId || data['grupoId'] == widget.groupId) {
-        Provider.of<GroupProvider>(context, listen: false).addGroupMessage(data);
+      if (data['grupo'] == widget.groupId ||
+          data['grupoId'] == widget.groupId) {
+        Provider.of<GroupProvider>(context, listen: false)
+            .addGroupMessage(data);
         _scrollToBottom();
       }
     });
@@ -108,14 +112,25 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      final file = File(image.path);
-      await groupProvider.sendGroupMessage(
-        groupId: widget.groupId,
-        currentUserId: authProvider.user!.id,
-        text: 'Imagen',
-        file: file,
-        tipo: MessageType.imagen,
-      );
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        await groupProvider.sendGroupMessage(
+          groupId: widget.groupId,
+          currentUserId: authProvider.user!.id,
+          text: 'Imagen',
+          file: bytes,
+          tipo: MessageType.imagen,
+        );
+      } else {
+        final file = File(image.path);
+        await groupProvider.sendGroupMessage(
+          groupId: widget.groupId,
+          currentUserId: authProvider.user!.id,
+          text: 'Imagen',
+          file: file,
+          tipo: MessageType.imagen,
+        );
+      }
     }
   }
 
@@ -163,7 +178,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           messageText = 'Documento: $fileName';
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tipo de documento no permitido. Solo PDF, TXT, HTML o PHP.')),
+            const SnackBar(
+                content: Text(
+                    'Tipo de documento no permitido. Solo PDF, TXT, HTML o PHP.')),
           );
           return;
         }
@@ -174,14 +191,31 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         return;
       }
 
-      File file = File(result.files.single.path!);
-      await groupProvider.sendGroupMessage(
-        groupId: widget.groupId,
-        currentUserId: authProvider.user!.id,
-        text: messageText,
-        file: file,
-        tipo: tipo,
-      );
+      if (kIsWeb) {
+        final Uint8List? fileBytes = result.files.single.bytes;
+        if (fileBytes == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se pudo leer el archivo.')),
+          );
+          return;
+        }
+        await groupProvider.sendGroupMessage(
+          groupId: widget.groupId,
+          currentUserId: authProvider.user!.id,
+          text: messageText,
+          file: fileBytes,
+          tipo: tipo,
+        );
+      } else {
+        File file = File(result.files.single.path!);
+        await groupProvider.sendGroupMessage(
+          groupId: widget.groupId,
+          currentUserId: authProvider.user!.id,
+          text: messageText,
+          file: file,
+          tipo: tipo,
+        );
+      }
     }
   }
 
@@ -197,7 +231,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final groupProvider = Provider.of<GroupProvider>(context);
 
     if (!authProvider.isAuthenticated || authProvider.user == null) {
-      return const Scaffold(body: Center(child: Text('No has iniciado sesión')));
+      return const Scaffold(
+          body: Center(child: Text('No has iniciado sesión')));
     }
 
     final group = groupProvider.getGroupById(widget.groupId);
@@ -212,7 +247,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             CircleAvatar(
               backgroundColor: Colors.blue,
               child: Text(
-                group.nombreGrupo.isNotEmpty ? group.nombreGrupo[0].toUpperCase() : 'G',
+                group.nombreGrupo.isNotEmpty
+                    ? group.nombreGrupo[0].toUpperCase()
+                    : 'G',
                 style: const TextStyle(color: Colors.white),
               ),
             ),
@@ -228,7 +265,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               _showGroupMembers(group);
             },
           ),
-            // lib/screens/group_chat_screen.dart (continuación)
+          // lib/screens/group_chat_screen.dart (continuación)
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadMessages,
@@ -249,7 +286,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         itemBuilder: (context, index) {
                           final message = groupProvider.groupMessages[index];
                           final isMe = message['user'] == authProvider.user!.id;
-                          
+
                           return _buildGroupMessageBubble(
                             message: message,
                             isMe: isMe,
@@ -259,7 +296,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
           if (_isAttaching)
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
               color: Colors.grey[200],
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -310,7 +348,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       ),
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 10.0),
                     ),
                     textCapitalization: TextCapitalization.sentences,
                     onSubmitted: (_) => _sendMessage(),
@@ -334,7 +373,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }) {
     final pb = PocketBaseConfig.pb;
     final baseUrl = pb.baseUrl;
-    final String senderName = message['expand']?['user']?['displayName_A'] ?? 'Usuario';
+    final String senderName =
+        message['expand']?['user']?['displayName_A'] ?? 'Usuario';
     final String texto = message['texto'] ?? '';
     final String? tipo = message['tipo'];
     final String? filePath = message['filePath'];
@@ -345,7 +385,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5.0),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe)
@@ -379,7 +420,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       ),
                     ),
                   ),
-                _buildGroupMessageContent(tipo, texto, filePath, imagenUrl, baseUrl, isMe),
+                _buildGroupMessageContent(
+                    tipo, texto, filePath, imagenUrl, baseUrl, isMe),
                 const SizedBox(height: 5),
                 Text(
                   timeString,
@@ -461,14 +503,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               ),
           ],
         );
-      
+
       case 'audio':
       case 'audioVoz':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
               decoration: BoxDecoration(
                 color: isMe ? Colors.blue.shade800 : Colors.grey.shade400,
                 borderRadius: BorderRadius.circular(20.0),
@@ -503,7 +546,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               ),
           ],
         );
-      
+
       case 'video':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,12 +578,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               ),
           ],
         );
-      
+
       case 'documento':
-        final fileName = texto.startsWith('Documento: ')
-            ? texto.substring(11)
-            : 'Documento';
-        
+        final fileName =
+            texto.startsWith('Documento: ') ? texto.substring(11) : 'Documento';
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -582,7 +624,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               ),
           ],
         );
-      
+
       case 'texto':
       default:
         return Text(

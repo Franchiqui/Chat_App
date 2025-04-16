@@ -5,6 +5,7 @@ import '../config/pocketbase_config.dart';
 import '../models/group_model.dart';
 import '../models/message_model.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 class GroupService {
   final PocketBase pb = PocketBaseConfig.pb;
@@ -95,7 +96,7 @@ class GroupService {
     required String groupId,
     required String currentUserId,
     required String text,
-    File? file,
+    dynamic file, // File (móvil) o Uint8List (web)
     MessageType tipo = MessageType.texto,
   }) async {
     final group = await pb.collection(PocketBaseConfig.groupsCollection).getOne(groupId);
@@ -119,10 +120,19 @@ class GroupService {
     final formData = {...data};
     
     if (file != null) {
-      await pb.collection(PocketBaseConfig.groupMessagesCollection).create(
-        body: formData,
-        files: [await MultipartFile.fromPath('file', file.path, filename: file.uri.pathSegments.last)],
-      );
+      if (file is Uint8List) {
+        await pb.collection(PocketBaseConfig.groupMessagesCollection).create(
+          body: formData,
+          files: [MultipartFile.fromBytes('file', file, filename: 'archivo')],
+        );
+      } else if (file is File) {
+        await pb.collection(PocketBaseConfig.groupMessagesCollection).create(
+          body: formData,
+          files: [await MultipartFile.fromPath('file', file.path, filename: file.uri.pathSegments.last)],
+        );
+      } else {
+        throw Exception('Tipo de archivo no soportado');
+      }
     } else {
       await pb.collection(PocketBaseConfig.groupMessagesCollection).create(body: formData);
     }

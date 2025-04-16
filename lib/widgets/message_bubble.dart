@@ -100,8 +100,10 @@ class MessageBubble extends StatelessWidget {
       case MessageType.audioVoz:
         // Usa el campo mp3Url o filePath para construir la URL
         String? audioUrl = message.mp3Url;
-        if ((audioUrl == null || audioUrl.isEmpty) && message.filePath != null) {
-          audioUrl = '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+        if ((audioUrl == null || audioUrl.isEmpty) &&
+            message.filePath != null) {
+          audioUrl =
+              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
         }
         if (audioUrl != null && audioUrl.isNotEmpty) {
           return AudioPlayerWidget(audioUrl: audioUrl);
@@ -141,11 +143,18 @@ class MessageBubble extends StatelessWidget {
                     );
                   },
                   errorBuilder: (context, error, stackTrace) {
+                    // Si el error es 404 o cualquier otro, muestra mensaje amigable
                     return Container(
                       height: 150,
                       color: Colors.grey[300],
-                      child: Center(
-                        child: Icon(Icons.error, color: Colors.red),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.broken_image, color: Colors.red, size: 40),
+                          SizedBox(height: 8),
+                          Text('Imagen no disponible',
+                              style: TextStyle(color: Colors.red)),
+                        ],
                       ),
                     );
                   },
@@ -165,17 +174,20 @@ class MessageBubble extends StatelessWidget {
         );
 
       case MessageType.audio:
-      case MessageType.audioVoz:
         String? audioUrl = message.mp3Url;
-        if ((audioUrl == null || audioUrl.isEmpty) && message.filePath != null) {
-          audioUrl = '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+        if ((audioUrl == null || audioUrl.isEmpty) &&
+            message.filePath != null) {
+          audioUrl =
+              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
         }
         if (audioUrl != null && audioUrl.isNotEmpty) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AudioPlayerWidget(audioUrl: audioUrl, fileName: message.fileName),
-              if (message.texto.isNotEmpty && message.texto != 'Audio' && message.texto != 'audioVoz')
+              if (message.texto.isNotEmpty &&
+                  message.texto != 'Audio' &&
+                  message.texto != 'audioVoz')
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
@@ -208,7 +220,8 @@ class MessageBubble extends StatelessWidget {
                 child: SizedBox(
                   height: 180,
                   width: double.infinity,
-                  child: VideoPlayerWidget(videoUrl: videoUrl, fileName: message.fileName),
+                  child: VideoPlayerWidget(
+                      videoUrl: videoUrl, fileName: message.fileName),
                 ),
               ),
             if (message.texto.isNotEmpty && message.texto != 'Video')
@@ -233,9 +246,18 @@ class MessageBubble extends StatelessWidget {
               '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
         }
         // Detectar si es un archivo de audio por extensión
-        final audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'amr'];
+        final audioExtensions = [
+          'mp3',
+          'wav',
+          'ogg',
+          'm4a',
+          'aac',
+          'flac',
+          'amr'
+        ];
         final isAudio = message.fileName != null &&
-            audioExtensions.contains(message.fileName!.split('.').last.toLowerCase());
+            audioExtensions
+                .contains(message.fileName!.split('.').last.toLowerCase());
         if (isAudio && docUrl != null) {
           // Mostrar reproductor de audio en vez de solo icono
           return Column(
@@ -265,7 +287,8 @@ class MessageBubble extends StatelessWidget {
                   ? () async {
                       final uri = Uri.parse(docUrl!);
                       if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        await launchUrl(uri,
+                            mode: LaunchMode.externalApplication);
                       }
                     }
                   : null,
@@ -292,7 +315,8 @@ class MessageBubble extends StatelessWidget {
                     if (docUrl != null)
                       const Padding(
                         padding: EdgeInsets.only(left: 6.0),
-                        child: Icon(Icons.open_in_new, color: Colors.white, size: 18),
+                        child: Icon(Icons.open_in_new,
+                            color: Colors.white, size: 18),
                       ),
                   ],
                 ),
@@ -390,4 +414,3 @@ class MessageBubble extends StatelessWidget {
     return colors[extension] ?? Colors.grey;
   }
 }
-

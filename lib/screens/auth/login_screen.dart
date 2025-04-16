@@ -28,9 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     // Cancelar la suscripción al salir de la pantalla
-    if (_unsubscribe != null) {
-      _unsubscribe();
-    }
+    _unsubscribe();
     super.dispose();
   }
 
@@ -49,7 +47,8 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       // Suscribirse a la colección 'messages' en tiempo real SOLO después de login exitoso
-      _unsubscribe = PocketBaseConfig.pb.collection('messages').subscribe('*', (e) {
+      _unsubscribe =
+          PocketBaseConfig.pb.collection('messages').subscribe('*', (e) {
         if (e.action == 'create') {
           print('Nuevo mensaje recibido: ${e.record}');
           // Aquí puedes agregar lógica adicional para manejar mensajes en tiempo real

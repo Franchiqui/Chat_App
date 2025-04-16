@@ -1,5 +1,4 @@
 // lib/providers/group_provider.dart
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../services/group_service.dart';
 import '../models/group_model.dart';
@@ -30,12 +29,14 @@ class GroupProvider with ChangeNotifier {
     }
   }
 
-  Future<GroupModel> createGroup(String currentUserId, String name, List<String> memberIds) async {
+  Future<GroupModel> createGroup(
+      String currentUserId, String name, List<String> memberIds) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final group = await _groupService.createGroup(currentUserId, name, memberIds);
+      final group =
+          await _groupService.createGroup(currentUserId, name, memberIds);
       _groups.add(group);
       notifyListeners();
       return group;
@@ -73,7 +74,7 @@ class GroupProvider with ChangeNotifier {
     required String groupId,
     required String currentUserId,
     required String text,
-    File? file,
+    dynamic file, // File o Uint8List
     MessageType tipo = MessageType.texto,
   }) async {
     await _groupService.sendGroupMessage(
@@ -83,7 +84,7 @@ class GroupProvider with ChangeNotifier {
       file: file,
       tipo: tipo,
     );
-    
+
     // Recargar los mensajes después de enviar
     if (_currentGroupId == groupId) {
       getGroupMessages(groupId);
@@ -91,7 +92,8 @@ class GroupProvider with ChangeNotifier {
   }
 
   void addGroupMessage(Map<String, dynamic> message) {
-    if (message['grupo'] == _currentGroupId || message['grupoId'] == _currentGroupId) {
+    if (message['grupo'] == _currentGroupId ||
+        message['grupoId'] == _currentGroupId) {
       if (!_groupMessages.any((m) => m['id'] == message['id'])) {
         _groupMessages.add(message);
         notifyListeners();
@@ -101,6 +103,7 @@ class GroupProvider with ChangeNotifier {
 
   GroupModel? getGroupById(String groupId) {
     // ignore: cast_from_null_always_fails
-    return _groups.firstWhere((group) => group.id == groupId, orElse: () => null as GroupModel);
+    return _groups.firstWhere((group) => group.id == groupId,
+        orElse: () => null as GroupModel);
   }
 }
