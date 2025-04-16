@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../services/message_service.dart';
+import '../config/pocketbase_config.dart';
 import '../models/message_model.dart';
 
 class MessageProvider with ChangeNotifier {
@@ -97,23 +98,31 @@ class MessageProvider with ChangeNotifier {
     }
   }
 
-  void addMessage(MessageModel message) {
-    print(
-        '[MessageProvider] addMessage: idChat=${message.idChat}, currentChatId=$_currentChatId, id=${message.id}');
+  Future<void> addMessage(MessageModel message) async {
+    print('[MessageProvider] addMessage: idChat=[36m${message.idChat}[0m, currentChatId=$_currentChatId, id=${message.id}');
     if (message.idChat == _currentChatId) {
       if (!_messages.any((m) => m.id == message.id)) {
-        _messages.add(message);
-        print(
-            '[MessageProvider] Mensaje agregado (${message.id}). Total ahora: ${_messages.length}');
-        notifyListeners();
-        print('[MessageProvider] notifyListeners después de addMessage');
+        // Obtener el mensaje expandido desde PocketBase
+        try {
+          final pb = MessageService().pb;
+          final record = await pb.collection(PocketBaseConfig.messagesCollection)
+              .getOne(message.id, expand: 'user1,user2');
+          final expandedMessage = MessageModel.fromJson(record.toJson());
+          _messages.add(expandedMessage);
+          print('[MessageProvider] Mensaje expandido agregado (${expandedMessage.id}). Total ahora: ${_messages.length}');
+          notifyListeners();
+          print('[MessageProvider] notifyListeners después de addMessage');
+        } catch (e) {
+          print('[MessageProvider] Error al expandir mensaje: $e');
+          // Si falla, agrega el mensaje plano
+          _messages.add(message);
+          notifyListeners();
+        }
       } else {
-        print(
-            '[MessageProvider] Mensaje duplicado, no se agrega (${message.id})');
+        print('[MessageProvider] Mensaje duplicado, no se agrega (${message.id})');
       }
     } else {
-      print(
-          '[MessageProvider] Mensaje ignorado: idChat=${message.idChat} != $_currentChatId');
+      print('[MessageProvider] Mensaje ignorado: idChat=${message.idChat} != $_currentChatId');
     }
   }
 }

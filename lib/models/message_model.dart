@@ -47,12 +47,18 @@ class MessageModel {
   factory MessageModel.fromJson(Map<String, dynamic> json) {
     // Depuración
     print('Datos del mensaje: ${json.toString()}');
+    // Lógica robusta para obtener el avatar correcto del remitente
     String? senderAvatar;
+    final userId = json['user'] is Map
+        ? json['user']['id'].toString()
+        : json['user']?.toString();
     if (json['expand'] != null) {
-      if (json['user1'] == json['user']) {
-        senderAvatar = json['expand']['user1']?['avatar'];
-      } else {
-        senderAvatar = json['expand']['user2']?['avatar'];
+      final user1 = json['expand']['user1'];
+      final user2 = json['expand']['user2'];
+      if (user1 != null && user1['id']?.toString() == userId) {
+        senderAvatar = user1['avatar'];
+      } else if (user2 != null && user2['id']?.toString() == userId) {
+        senderAvatar = user2['avatar'];
       }
     }
     // Determinar el tipo de mensaje
@@ -65,7 +71,7 @@ class MessageModel {
       user1: json['user1']?.toString() ?? '',
       user2: json['user2']?.toString() ?? '',
       idChat: json['idChat']?.toString() ?? '',
-      senderAvatar: json['senderAvatar']?.toString() ?? '',
+      senderAvatar: senderAvatar?.toString() ?? '',
       fechaMensaje: json['fechaMensaje']?.toString() ?? '',
       textoBool: json['textoBool'] ?? false,
       creado: json['creado'] ?? false,
