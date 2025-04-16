@@ -19,12 +19,17 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final pb = PocketBaseConfig.pb;
     final baseUrl = pb.baseUrl;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5.0),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
+          if (!isMe) ...[
+            _buildAvatar(context),
+            const SizedBox(width: 8),
+          ],
           Container(
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.7,
@@ -61,74 +66,97 @@ class MessageBubble extends StatelessWidget {
               ],
             ),
           ),
+          if (isMe) ...[
+            const SizedBox(width: 8),
+            _buildAvatar(context),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildMessageContent(BuildContext context, String baseUrl) {
-  switch (message.tipo) {
-    case MessageType.imagen:
-      String? imageUrl;
-      if (message.imagenUrl != null && message.imagenUrl!.isNotEmpty) {
-        imageUrl = message.imagenUrl;
-      } else if (message.filePath != null) {
-        // Construir URL usando el ID de mensaje y el path del archivo
-        imageUrl = '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
-      }
+  Widget _buildAvatar(BuildContext context) {
+    // Intentar obtener el avatar del usuario remitente
+    String? avatar = message.senderAvatar;
+    // Si tienes el avatar en el modelo de mensaje, úsalo. Si no, usa un placeholder.
+    // Aquí puedes modificar para obtener el avatar real desde el modelo de mensaje si lo tienes.
+    // Ejemplo si tienes message.avatar:
+    // String? avatarUrl = message.avatar;
+    // Por ahora, avatarUrl será null y saldrá el placeholder.
+    return CircleAvatar(
+      radius: 18,
+      backgroundImage:
+          (avatar != null && avatar.isNotEmpty) ? NetworkImage(avatar) : null,
+      child:
+          (avatar == null || avatar.isEmpty) ? const Icon(Icons.person) : null,
+    );
+  }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8.0),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 150,
-                    color: Colors.grey[300],
-                    child: Center(
-                      child: Icon(Icons.error, color: Colors.red),
-                    ),
-                  );
-                },
-              ),
-            ),
-          if (message.texto.isNotEmpty && message.texto != 'Imagen')
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                message.texto,
-                style: TextStyle(
-                  color: isMe ? Colors.white : Colors.black,
+  Widget _buildMessageContent(BuildContext context, String baseUrl) {
+    switch (message.tipo) {
+      case MessageType.imagen:
+        String? imageUrl;
+        if (message.imagenUrl != null && message.imagenUrl!.isNotEmpty) {
+          imageUrl = message.imagenUrl;
+        } else if (message.filePath != null) {
+          // Construir URL usando el ID de mensaje y el path del archivo
+          imageUrl =
+              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 150,
+                      color: Colors.grey[300],
+                      child: Center(
+                        child: Icon(Icons.error, color: Colors.red),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-        ],
-      );
-      
+            if (message.texto.isNotEmpty && message.texto != 'Imagen')
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  message.texto,
+                  style: TextStyle(
+                    color: isMe ? Colors.white : Colors.black,
+                  ),
+                ),
+              ),
+          ],
+        );
+
       case MessageType.audio:
       case MessageType.audioVoz:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
               decoration: BoxDecoration(
                 color: isMe ? Colors.blue.shade800 : Colors.grey.shade400,
                 borderRadius: BorderRadius.circular(20.0),
@@ -163,7 +191,7 @@ class MessageBubble extends StatelessWidget {
               ),
           ],
         );
-      
+
       case MessageType.video:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,7 +223,7 @@ class MessageBubble extends StatelessWidget {
               ),
           ],
         );
-      
+
       case MessageType.documento:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +254,8 @@ class MessageBubble extends StatelessWidget {
                 ],
               ),
             ),
-            if (message.texto.isNotEmpty && !message.texto.startsWith('Documento:'))
+            if (message.texto.isNotEmpty &&
+                !message.texto.startsWith('Documento:'))
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
@@ -238,15 +267,15 @@ class MessageBubble extends StatelessWidget {
               ),
           ],
         );
-      
+
       case MessageType.texto:
-    default:
-      return Text(
-        message.texto,
-        style: TextStyle(
-          color: isMe ? Colors.white : Colors.black,
-        ),
-      );
+      default:
+        return Text(
+          message.texto,
+          style: TextStyle(
+            color: isMe ? Colors.white : Colors.black,
+          ),
+        );
+    }
   }
-}
 }

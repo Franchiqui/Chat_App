@@ -9,7 +9,7 @@ class MessageProvider with ChangeNotifier {
   List<MessageModel> _messages = [];
   bool _isLoading = false;
   String? _currentChatId;
-  
+
   List<MessageModel> get messages => _messages;
   bool get isLoading => _isLoading;
   String? get currentChatId => _currentChatId;
@@ -27,7 +27,8 @@ class MessageProvider with ChangeNotifier {
 
     try {
       _messages = await _messageService.getChatMessages(chatId);
-      print('[MessageProvider] Mensajes cargados (${_messages.length}): ${_messages.map((m) => m.id).toList()}');
+      print(
+          '[MessageProvider] Mensajes cargados (${_messages.length}): ${_messages.map((m) => m.id).toList()}');
       notifyListeners();
       print('[MessageProvider] notifyListeners después de cargar mensajes');
     } finally {
@@ -37,10 +38,12 @@ class MessageProvider with ChangeNotifier {
     }
   }
 
-  Future<void> sendTextMessage(String chatId, String currentUserId, String otherUserId, String text) async {
+  Future<void> sendTextMessage(String chatId, String currentUserId,
+      String otherUserId, String text) async {
     if (text.trim().isEmpty) return;
 
-    final message = await _messageService.sendTextMessage(chatId, currentUserId, otherUserId, text);
+    final message = await _messageService.sendTextMessage(
+        chatId, currentUserId, otherUserId, text);
     _messages.add(message);
     notifyListeners();
   }
@@ -75,6 +78,7 @@ class MessageProvider with ChangeNotifier {
         user1: _messages[index].user1,
         user2: _messages[index].user2,
         idChat: _messages[index].idChat,
+        senderAvatar: _messages[index].senderAvatar,
         fechaMensaje: _messages[index].fechaMensaje,
         textoBool: _messages[index].textoBool,
         creado: _messages[index].creado,
@@ -94,18 +98,22 @@ class MessageProvider with ChangeNotifier {
   }
 
   void addMessage(MessageModel message) {
-    print('[MessageProvider] addMessage: idChat=${message.idChat}, currentChatId=$_currentChatId, id=${message.id}');
+    print(
+        '[MessageProvider] addMessage: idChat=${message.idChat}, currentChatId=$_currentChatId, id=${message.id}');
     if (message.idChat == _currentChatId) {
       if (!_messages.any((m) => m.id == message.id)) {
         _messages.add(message);
-        print('[MessageProvider] Mensaje agregado (${message.id}). Total ahora: ${_messages.length}');
+        print(
+            '[MessageProvider] Mensaje agregado (${message.id}). Total ahora: ${_messages.length}');
         notifyListeners();
         print('[MessageProvider] notifyListeners después de addMessage');
       } else {
-        print('[MessageProvider] Mensaje duplicado, no se agrega (${message.id})');
+        print(
+            '[MessageProvider] Mensaje duplicado, no se agrega (${message.id})');
       }
     } else {
-      print('[MessageProvider] Mensaje ignorado: idChat=${message.idChat} != $_currentChatId');
+      print(
+          '[MessageProvider] Mensaje ignorado: idChat=${message.idChat} != $_currentChatId');
     }
   }
 }
