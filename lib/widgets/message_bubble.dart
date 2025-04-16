@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../config/pocketbase_config.dart';
 import '../models/message_model.dart';
 import 'audio_player_widget.dart';
+import 'video_player_widget.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MessageBubble extends StatelessWidget {
   final MessageModel message;
@@ -164,66 +166,51 @@ class MessageBubble extends StatelessWidget {
 
       case MessageType.audio:
       case MessageType.audioVoz:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-              decoration: BoxDecoration(
-                color: isMe ? Colors.blue.shade800 : Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.play_arrow,
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Audio',
+        String? audioUrl = message.mp3Url;
+        if ((audioUrl == null || audioUrl.isEmpty) && message.filePath != null) {
+          audioUrl = '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+        }
+        if (audioUrl != null && audioUrl.isNotEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AudioPlayerWidget(audioUrl: audioUrl, fileName: message.fileName),
+              if (message.texto.isNotEmpty && message.texto != 'Audio' && message.texto != 'audioVoz')
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    message.texto,
                     style: TextStyle(
                       color: isMe ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
-              ),
-            ),
-            if (message.texto.isNotEmpty && message.texto != 'Audio')
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  message.texto,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
                 ),
-              ),
-          ],
-        );
+            ],
+          );
+        } else {
+          return const Text('Audio no disponible');
+        }
 
       case MessageType.video:
+        String? videoUrl;
+        if (message.videoUrl != null && message.videoUrl!.isNotEmpty) {
+          videoUrl = message.videoUrl;
+        } else if (message.filePath != null) {
+          videoUrl =
+              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.black,
+            if (videoUrl != null)
+              ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.play_circle_fill,
-                  color: Colors.white,
-                  size: 50,
+                child: SizedBox(
+                  height: 180,
+                  width: double.infinity,
+                  child: VideoPlayerWidget(videoUrl: videoUrl),
                 ),
               ),
-            ),
             if (message.texto.isNotEmpty && message.texto != 'Video')
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
@@ -238,33 +225,77 @@ class MessageBubble extends StatelessWidget {
         );
 
       case MessageType.documento:
+        String? docUrl;
+        if (message.documentUrl != null && message.documentUrl!.isNotEmpty) {
+          docUrl = message.documentUrl;
+        } else if (message.filePath != null) {
+          docUrl =
+              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+        }
+        // Detectar si es un archivo de audio por extensión
+        final audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'amr'];
+        final isAudio = message.fileName != null &&
+            audioExtensions.contains(message.fileName!.split('.').last.toLowerCase());
+        if (isAudio && docUrl != null) {
+          // Mostrar reproductor de audio en vez de solo icono
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AudioPlayerWidget(audioUrl: docUrl, fileName: message.fileName),
+              if (message.texto.isNotEmpty &&
+                  !message.texto.startsWith('Documento:'))
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    message.texto,
+                    style: TextStyle(
+                      color: isMe ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }
+        // Si no es audio, mostrar como documento normal
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10.0),
-              decoration: BoxDecoration(
-                color: isMe ? Colors.blue.shade800 : Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.insert_drive_file,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      message.fileName ?? 'Documento',
-                      style: const TextStyle(
-                        color: Colors.white,
+            GestureDetector(
+              onTap: docUrl != null
+                  ? () async {
+                      final uri = Uri.parse(docUrl!);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    }
+                  : null,
+              child: Container(
+                padding: const EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                  color: isMe ? Colors.blue.shade800 : Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildFileIcon(message.fileName ?? 'Documento'),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        message.fileName ?? 'Documento',
+                        style: const TextStyle(
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    if (docUrl != null)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 6.0),
+                        child: Icon(Icons.open_in_new, color: Colors.white, size: 18),
+                      ),
+                  ],
+                ),
               ),
             ),
             if (message.texto.isNotEmpty &&
@@ -291,4 +322,72 @@ class MessageBubble extends StatelessWidget {
         );
     }
   }
+
+  // Icono según extensión de archivo
+  Widget _buildFileIcon(String fileName) {
+    final ext = fileName.split('.').last.toLowerCase();
+    final icons = {
+      'pdf': Icons.picture_as_pdf,
+      'doc': Icons.article, // Documento Word
+      'docx': Icons.article,
+      'xls': Icons.grid_on, // Excel
+      'xlsx': Icons.grid_on,
+      'ppt': Icons.slideshow, // PowerPoint
+      'pptx': Icons.slideshow,
+      'txt': Icons.notes, // Texto
+      'zip': Icons.archive, // Comprimido
+      'rar': Icons.archive,
+      'csv': Icons.table_rows,
+      'json': Icons.data_object,
+      'xml': Icons.code,
+      'apk': Icons.android,
+      'exe': Icons.computer,
+      'mp3': Icons.music_note,
+      'wav': Icons.music_note,
+      'mp4': Icons.movie,
+      'avi': Icons.movie,
+      'mov': Icons.movie,
+      'jpg': Icons.image,
+      'jpeg': Icons.image,
+      'png': Icons.image,
+      'gif': Icons.gif,
+    };
+    return Icon(
+      icons[ext] ?? Icons.insert_drive_file,
+      color: _getFileIconColor(ext),
+      size: 28,
+    );
+  }
+
+  // Color del icono según extensión
+  Color _getFileIconColor(String extension) {
+    final colors = {
+      'pdf': Colors.red,
+      'doc': Colors.indigo,
+      'docx': Colors.indigo,
+      'xls': Colors.green,
+      'xlsx': Colors.green,
+      'ppt': Colors.deepOrange,
+      'pptx': Colors.deepOrange,
+      'txt': Colors.deepPurple,
+      'zip': Colors.brown,
+      'rar': Colors.brown,
+      'csv': Colors.teal,
+      'json': Colors.blueGrey,
+      'xml': Colors.blueGrey,
+      'apk': Colors.lightGreen,
+      'exe': Colors.black,
+      'mp3': Colors.pink,
+      'wav': Colors.pink,
+      'mp4': Colors.deepPurpleAccent,
+      'avi': Colors.deepPurpleAccent,
+      'mov': Colors.deepPurpleAccent,
+      'jpg': Colors.orange,
+      'jpeg': Colors.orange,
+      'png': Colors.lightBlue,
+      'gif': Colors.amber,
+    };
+    return colors[extension] ?? Colors.grey;
+  }
 }
+

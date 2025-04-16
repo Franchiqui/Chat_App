@@ -11,7 +11,6 @@ import '../providers/chat_provider.dart';
 import '../providers/message_provider.dart';
 import '../models/message_model.dart';
 import '../widgets/message_bubble.dart';
-import '../services/file_upload_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;

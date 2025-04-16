@@ -1,7 +1,27 @@
 // lib/models/message_model.dart
+import '../config/pocketbase_config.dart';
 enum MessageType { texto, audioVoz, audio, imagen, video, documento }
 
 class MessageModel {
+  // Devuelve la URL del video si existe, si no la construye a partir de filePath
+  String? get videoUrl {
+    if (mensajeUrl != null && mensajeUrl!.isNotEmpty) return mensajeUrl;
+    if (filePath != null && tipo == MessageType.video) {
+      final baseUrl = PocketBaseConfig.pb.baseUrl;
+      return '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/$id/$filePath';
+    }
+    return null;
+  }
+
+  // Devuelve la URL del documento si existe, si no la construye a partir de filePath
+  String? get documentUrl {
+    if (mensajeUrl != null && mensajeUrl!.isNotEmpty) return mensajeUrl;
+    if (filePath != null && tipo == MessageType.documento) {
+      final baseUrl = PocketBaseConfig.pb.baseUrl;
+      return '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/$id/$filePath';
+    }
+    return null;
+  }
   final String id;
   final String texto;
   final String user1;
