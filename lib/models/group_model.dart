@@ -28,17 +28,17 @@ class GroupModel {
 
   factory GroupModel.fromJson(Map<String, dynamic> json) {
     return GroupModel(
-      id: json['id'],
+      id: json['id']as String,
       miembros: json['Miembros'] ?? [],
-      userId: json['user']?['id'],
-      nombreGrupo: json['nombreGrupo'] ?? '',
-      groupName: json['groupName'],
-      fechaChat: json['fechaChat'],
-      horaChat: json['horaChat'],
-      ultimoMensaje: json['ultimoMensaje'],
+      userId: json['user']?['id']as String,
+      nombreGrupo: json['nombreGrupo'] as String,
+      groupName: json['groupName']as String,
+      fechaChat: json['fechaChat']as String,
+      horaChat: json['horaChat']as String,
+      ultimoMensaje: json['ultimoMensaje']as String,
       visto: json['visto'] ?? false,
       membersIds: json['members'] != null ? List<String>.from(json['members']) : null,
-      miembrosId: json['miembrosId'],
+      miembrosId: json['miembrosId']as String,
     );
   }
 }

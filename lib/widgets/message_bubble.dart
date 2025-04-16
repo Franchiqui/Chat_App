@@ -67,63 +67,60 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildMessageContent(BuildContext context, String baseUrl) {
-    switch (message.tipo) {
-      case MessageType.imagen:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (message.imagenUrl != null && message.imagenUrl!.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  message.imagenUrl!,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    );
-                  },
-                ),
-              )
-            else if (message.filePath != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}',
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    );
-                  },
+  switch (message.tipo) {
+    case MessageType.imagen:
+      String? imageUrl;
+      if (message.imagenUrl != null && message.imagenUrl!.isNotEmpty) {
+        imageUrl = message.imagenUrl;
+      } else if (message.filePath != null) {
+        // Construir URL usando el ID de mensaje y el path del archivo
+        imageUrl = '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (imageUrl != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 150,
+                    color: Colors.grey[300],
+                    child: Center(
+                      child: Icon(Icons.error, color: Colors.red),
+                    ),
+                  );
+                },
+              ),
+            ),
+          if (message.texto.isNotEmpty && message.texto != 'Imagen')
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                message.texto,
+                style: TextStyle(
+                  color: isMe ? Colors.white : Colors.black,
                 ),
               ),
-            if (message.texto.isNotEmpty && message.texto != 'Imagen')
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  message.texto,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-          ],
-        );
+            ),
+        ],
+      );
       
       case MessageType.audio:
       case MessageType.audioVoz:
@@ -243,12 +240,13 @@ class MessageBubble extends StatelessWidget {
         );
       
       case MessageType.texto:
+    default:
       return Text(
-          message.texto,
-          style: TextStyle(
-            color: isMe ? Colors.white : Colors.black,
-          ),
-        );
-    }
+        message.texto,
+        style: TextStyle(
+          color: isMe ? Colors.white : Colors.black,
+        ),
+      );
   }
+}
 }

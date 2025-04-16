@@ -38,10 +38,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
+  if (!mounted) return;
 
+  setState(() => _isLoading = true);
+
+  try {
+    // Declara los providers correctamente
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     final groupProvider = Provider.of<GroupProvider>(context, listen: false);
@@ -50,11 +52,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       await chatProvider.getUserChats(authProvider.user!.id);
       await groupProvider.getUserGroups(authProvider.user!.id);
     }
-
-    setState(() {
-      _isLoading = false;
-    });
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
 
   Future<void> _refresh() async {
     await _loadData();
@@ -189,74 +190,91 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   void _showUserSearchDialog(BuildContext context) {
   final TextEditingController searchController = TextEditingController();
+  
   showDialog(
     context: context,
     builder: (context) {
       List<Map<String, dynamic>> searchResults = [];
-      bool isLoading = false;
-
+      bool isLoading = true; // Inicialmente cargando
+      
       return StatefulBuilder(
         builder: (context, setState) {
+          // Cargar todos los usuarios al abrir el diálogo
+          if (isLoading) {
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            authProvider.searchUsers('').then((users) {
+              setState(() {
+                searchResults = users;
+                isLoading = false;
+              });
+            });
+          }
+          
           return AlertDialog(
-            title: const Text('Buscar usuario'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: searchController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre de usuario',
-                    hintText: 'Ingresa el nombre de usuario',
-                    border: OutlineInputBorder(),
-                  ),
-                  onSubmitted: (query) async {
-                    if (query.isNotEmpty) {
+            title: const Text('Seleccionar usuario'),
+            content: Container(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: searchController,
+                    decoration: const InputDecoration(
+                      labelText: 'Buscar usuario',
+                      hintText: 'Ingresa el nombre de usuario',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (query) async {
                       setState(() {
                         isLoading = true;
                       });
-                      final authProvider =
-                          Provider.of<AuthProvider>(context, listen: false);
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
                       final results = await authProvider.searchUsers(query);
                       setState(() {
                         searchResults = results;
                         isLoading = false;
                       });
-                    }
-                  },
-                ),
-                if (isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: CircularProgressIndicator(),
+                    },
                   ),
-                if (!isLoading && searchResults.isNotEmpty)
-                  SizedBox(
-                    height: 200,
-                    width: double.maxFinite,
-                    child: ListView.builder(
-                      itemCount: searchResults.length,
-                      itemBuilder: (context, index) {
-                        final user = searchResults[index];
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: user['avatar'] != null
-                                ? NetworkImage(user['avatar'])
-                                : null,
-                            child: user['avatar'] == null
-                                ? Text(user['displayName'][0].toUpperCase())
-                                : null,
-                          ),
-                          title: Text(user['displayName']),
-                          subtitle: Text(user['username']),
-                          onTap: () async {
-                            Navigator.of(context).pop(); // Cerrar el diálogo
-                            await _createChatWithUser(user); // Crear o navegar al chat
-                          },
-                        );
-                      },
+                  const SizedBox(height: 10),
+                  if (isLoading)
+                    const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  else if (searchResults.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No se encontraron usuarios'),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: searchResults.length,
+                        itemBuilder: (context, index) {
+                          final user = searchResults[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: user['avatar'] != null && user['avatar'].toString().isNotEmpty
+                                  ? NetworkImage(user['avatar'])
+                                  : null,
+                              child: user['avatar'] == null || user['avatar'].toString().isEmpty
+                                  ? Text(user['displayName'][0].toUpperCase())
+                                  : null,
+                            ),
+                            title: Text(user['displayName']),
+                            subtitle: Text(user['username']),
+                            onTap: () async {
+                              Navigator.of(context).pop(); // Cerrar el diálogo
+                              await _createChatWithUser(user); // Crear o navegar al chat
+                            },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -272,7 +290,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     },
   );
 }
-
 Future<void> _createChatWithUser(Map<String, dynamic> user) async {
   final authProvider = Provider.of<AuthProvider>(context, listen: false);
   final chatProvider = Provider.of<ChatProvider>(context, listen: false);
@@ -286,29 +303,31 @@ Future<void> _createChatWithUser(Map<String, dynamic> user) async {
 
   final currentUserId = authProvider.user!.id;
   final otherUserId = user['id'];
-  final currentDisplayName = authProvider.user!.displayName;
+  final currentDisplayName = authProvider.user!.displayName_A;
   final otherDisplayName = user['displayName'];
 
   final currentUser = UserModel(
     id: currentUserId,
     username: authProvider.user!.username,
-    displayName: currentDisplayName,
-    avatarUrl: authProvider.user!.avatar,
+    displayName_A: currentDisplayName,
+    avatar: authProvider.user!.avatar,
   );
 
   final otherUser = UserModel(
     id: otherUserId,
-    username: user['username'],
-    displayName: otherDisplayName,
-    avatarUrl: user['avatar'],
+    username: user['username'] ?? '', // <-- Valor predeterminado
+    displayName_A: user['displayName_A'] ?? 'Usuario sin nombre', // <-- Valor predeterminado
+    avatar: user['avatar'], // Este campo puede ser null
   );
 
   final newChat = await chatProvider.createChat(currentUser, otherUser);
 
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => ChatScreen(chatId: newChat.id),
-    ),
-  );
+  if (mounted) { // Verificar antes de navegar
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(chatId: newChat.id),
+      ),
+    );
+  }
 }
 }

@@ -24,7 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     _displayNameController = TextEditingController(
-      text: authProvider.user?.displayName,
+      text: authProvider.user?.displayName_A,
     );
   }
 
@@ -59,8 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         };
         
         if (_avatarFile != null) {
-          // En un caso real, aquí subirías la imagen
-          // data['avatar'] = _avatarFile;
+           data['avatar'] = _avatarFile as String;
         }
         
         await authProvider.updateProfile(data);
@@ -98,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final avatarUrl = user.avatarUrl;
+    final avatarUrl = user.avatar;
     final pb = PocketBaseConfig.pb;
     final baseUrl = pb.baseUrl;
     
@@ -126,8 +125,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : null as ImageProvider<Object>?),
                       child: avatarUrl == null || avatarUrl.isEmpty && _avatarFile == null
                           ? Text(
-                              user.displayName.isNotEmpty
-                                  ? user.displayName[0].toUpperCase()
+                              user.displayName_A.isNotEmpty
+                                  ? user.displayName_A[0].toUpperCase()
                                   : '?',
                               style: const TextStyle(fontSize: 40),
                             )

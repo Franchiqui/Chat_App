@@ -27,35 +27,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        await Provider.of<AuthProvider>(context, listen: false).register(
-          _usernameController.text.trim(),
-          _passwordController.text,
-          _displayNameController.text.trim(),
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Registrar al usuario
+      await Provider.of<AuthProvider>(context, listen: false).register(
+        _usernameController.text.trim(),
+        _passwordController.text,
+        _displayNameController.text.trim(),
+      );
+
+      // Navegar a la pantalla principal después del registro exitoso
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
-        
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${e.toString()}')),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+      }
+    } catch (e) {
+      // Mostrar un mensaje de error si ocurre un problema durante el registro
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al registrar: ${e.toString()}')),
+        );
+      }
+    } finally {
+      // Asegurarse de que el estado se actualice correctamente
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }

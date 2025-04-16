@@ -27,18 +27,18 @@ class ChatModel {
   });
 
   factory ChatModel.fromJson(Map<String, dynamic> json) {
-    return ChatModel(
-      id: json['id'],
-      user1: json['user1'],
-      user2: json['user2'],
-      displayNameA: json['displayName_A'],
-      displayNameB: json['displayName_B'],
-      fotoUrlA: json['fotoUrl_A'],
-      fotoUrlB: json['fotoUrl_B'],
-      fechaChat: json['fechaChat'],
-      horaChat: json['horaChat'],
-      ultimoMensaje: json['ultimoMensaje'],
-      visto: json['visto'],
-    );
-  }
+  return ChatModel(
+    id: json['id'],
+    user1: json['user1'],
+    user2: json['user2'],
+    displayNameA: json['displayName_A'] ?? '',
+    displayNameB: json['displayName_B'] ?? '',
+    fotoUrlA: json['fotoUrl_A'],
+    fotoUrlB: json['fotoUrl_B'],
+    fechaChat: json['fechaChat'],
+    horaChat: json['horaChat'],
+    ultimoMensaje: json['ultimoMensaje'],
+    visto: json['visto'],
+  );
+}
 }

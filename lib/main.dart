@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/config/pocketbase_config.dart';
 import 'package:provider/provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
@@ -8,7 +9,9 @@ import 'providers/chat_provider.dart';
 import 'providers/message_provider.dart';
 import 'providers/group_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await PocketBaseConfig.checkConnection(); // <-- Valida la conexión
   runApp(const MyApp());
 }
 
@@ -48,4 +51,5 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+  
 }

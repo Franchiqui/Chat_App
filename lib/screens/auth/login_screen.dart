@@ -1,5 +1,8 @@
 // lib/screens/auth/login_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/config/pocketbase_config.dart';
+import 'package:pocketbase/pocketbase.dart' show UnsubscribeFunc;
+import 'package:pocketbase/src/auth_store.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'register_screen.dart';
@@ -18,43 +21,57 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  // Variable para almacenar la función de cancelación de la suscripción
+  late UnsubscribeFunc _unsubscribe;
+
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    // Cancelar la suscripción al salir de la pantalla
+    if (_unsubscribe != null) {
+      _unsubscribe();
+    }
     super.dispose();
   }
 
   Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        await Provider.of<AuthProvider>(context, listen: false).login(
-          _usernameController.text.trim(),
-          _passwordController.text,
-        );
-        
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.login(
+        _usernameController.text.trim(),
+        _passwordController.text.trim(),
+      );
+
+      // Obtener el clientId después de iniciar sesión
+      final clientId = PocketBaseConfig.pb.authStore.clientId;
+
+      // Suscribirse a la colección 'messages' en tiempo real
+      _unsubscribe = PocketBaseConfig.pb.collection('messages').subscribe(clientId, (e) {
+        if (e.action == 'create') {
+          print('Nuevo mensaje recibido: ${e.record}');
+          // Aquí puedes agregar lógica adicional para manejar mensajes en tiempo real
         }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${e.toString()}')),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
+      }) as UnsubscribeFunc;
+
+      // Navegar a la pantalla principal después de iniciar sesión
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al iniciar sesión: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -147,4 +164,8 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+}
+
+extension on AuthStore {
+   get clientId => null;
 }

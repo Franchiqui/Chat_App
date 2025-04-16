@@ -4,7 +4,7 @@ primary_region = "mad"  # Madrid, pero puedes elegir una región más cercana a 
 [build]
 
 [http_service]
-  internal_port = 8080
+  internal_port = 8090
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
@@ -19,3 +19,23 @@ primary_region = "mad"  # Madrid, pero puedes elegir una región más cercana a 
 [mounts]
   source = "pb_data"
   destination = "/pb/pb_data"
+
+[[services]]
+  internal_port = 8090
+  protocol = "tcp"
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["http", "tls"]
+    
+  [[services.tcp_checks]]
+    interval = 10000
+    timeout = 2000  

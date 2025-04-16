@@ -43,27 +43,34 @@ class MessageModel {
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
-    return MessageModel(
-      id: json['id'],
-      texto: json['texto'] ?? '',
-      user1: json['user1'] ?? '',
-      user2: json['user2'] ?? '',
-      idChat: json['idChat'] ?? '',
-      fechaMensaje: json['fechaMensaje'] ?? '',
-      textoBool: json['textoBool'] ?? false,
-      creado: json['creado'] ?? false,
-      displayNameB: json['displayName_B'],
-      userId: json['user']?['id'],
-      tipo: _parseMessageType(json['tipo']),
-      visto: json['visto'] ?? false,
-      filePath: json['filePath'],
-      fileName: json['fileName'],
-      mensajeUrl: json['mensajeUrl'],
-      imagenUrl: json['imagenUrl'],
-      mp3Url: json['mp3_url'],
-      status: json['status'],
-    );
-  }
+  // Depuración
+  print('Datos del mensaje: ${json.toString()}');
+  
+  // Determinar el tipo de mensaje
+  final String tipoStr = json['tipo'] ?? 'texto';
+  MessageType tipo = _parseMessageType(tipoStr);
+  
+  return MessageModel(
+    id: json['id'] ?? '',
+    texto: json['texto'] ?? '',
+    user1: json['user1'] ?? '',
+    user2: json['user2'] ?? '',
+    idChat: json['idChat'] ?? '',
+    fechaMensaje: json['fechaMensaje'] ?? '',
+    textoBool: json['textoBool'] ?? false,
+    creado: json['creado'] ?? false,
+    displayNameB: json['displayName_B'],
+    userId: json['user']?['id'],
+    tipo: tipo,
+    visto: json['visto'] ?? false,
+    filePath: json['filePath'],
+    fileName: json['fileName'],
+    mensajeUrl: json['mensajeUrl'],
+    imagenUrl: json['imagenUrl'],
+    mp3Url: json['mp3_url'],
+    status: json['status'],
+  );
+}
 
   static MessageType _parseMessageType(String? type) {
     switch (type) {

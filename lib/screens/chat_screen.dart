@@ -36,7 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadMessages();
-      _subscribeToMessages();
+      _subscribeToMessages(); // Suscribirse a cambios en tiempo real
     });
   }
 
@@ -44,13 +44,25 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    // Cancelar la suscripción al cerrar el chat
+    pb.collection('messages').unsubscribe('*');
     super.dispose();
   }
 
   Future<void> _loadMessages() async {
-    await Provider.of<MessageProvider>(context, listen: false)
-        .getChatMessages(widget.chatId);
-    _scrollToBottom();
+    try {
+      print('Cargando mensajes para el chat: ${widget.chatId}'); // Depuración
+
+      await Provider.of<MessageProvider>(context, listen: false)
+          .getChatMessages(widget.chatId);
+
+      print(
+          'Mensajes cargados: ${Provider.of<MessageProvider>(context, listen: false).messages.length}'); // Depuración
+
+      _scrollToBottom();
+    } catch (e) {
+      print('Error al cargar mensajes: $e'); // Depuración
+    }
   }
 
   void _subscribeToMessages() {
@@ -256,11 +268,16 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (context, index) {
                           final message = messageProvider.messages[index];
                           final isMe = message.user1 == currentUserId;
+
+                          // Depuración
+                          print(
+                              'Renderizando mensaje: ${message.texto} - Tipo: ${message.tipo}');
+
                           return MessageBubble(
                             message: message,
                             isMe: isMe,
                             onLongPress: () {
-                              // Aquí podrías implementar opciones como eliminar o responder
+                              // Opciones al mantener presionado
                             },
                           );
                         },

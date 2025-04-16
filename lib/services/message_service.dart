@@ -9,22 +9,39 @@ class MessageService {
   final PocketBase pb = PocketBaseConfig.pb;
 
   // Obtener mensajes de un chat
+  // En message_service.dart
   Future<List<MessageModel>> getChatMessages(String chatId) async {
+  try {
+    print('Obteniendo mensajes para el chat ID: $chatId'); // Depuración
+    
     final result = await pb.collection(PocketBaseConfig.messagesCollection).getList(
       filter: 'idChat = "$chatId"',
       sort: 'created',
+      expand: 'user1,user2',
     );
+    
+    print('Mensajes encontrados: ${result.items.length}'); // Depuración
     
     List<MessageModel> messages = [];
     for (var item in result.items) {
-      messages.add(MessageModel.fromJson(item.toJson()));
+      try {
+        final message = MessageModel.fromJson(item.toJson());
+        messages.add(message);
+      } catch (e) {
+        print('Error al convertir mensaje: $e'); // Depuración
+      }
     }
     
     return messages;
+  } catch (e) {
+    print('Error al obtener mensajes: $e'); // Depuración
+    return [];
   }
+}
 
-  // Enviar mensaje de texto
-  Future<MessageModel> sendTextMessage(String chatId, String currentUserId, String otherUserId, String text) async {
+// Mejorar el método para enviar mensajes de texto
+Future<MessageModel> sendTextMessage(String chatId, String currentUserId, String otherUserId, String text) async {
+  try {
     final now = DateTime.now();
     final fechaMensaje = "${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute}";
     
@@ -42,8 +59,22 @@ class MessageService {
     
     final record = await pb.collection(PocketBaseConfig.messagesCollection).create(body: data);
     
+    // Actualizar último mensaje en el chat
+    await pb.collection(PocketBaseConfig.chatsCollection).update(
+      chatId, 
+      body: {
+        'ultimoMensaje': text,
+        'fechaChat': "${now.day}/${now.month}/${now.year}",
+        'horaChat': "${now.hour}:${now.minute}",
+      },
+    );
+    
     return MessageModel.fromJson(record.toJson());
+  } catch (e) {
+    print('Error al enviar mensaje: $e');
+    throw e;
   }
+}
 
   // Enviar mensaje con archivo (imagen, audio, video, documento)
   Future<MessageModel> sendFileMessage({

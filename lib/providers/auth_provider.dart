@@ -44,18 +44,22 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<void> login(String username, String password) async {
-    _isLoading = true;
-    notifyListeners();
+  // auth_provider.dart
+Future<void> login(String username, String password) async {
+  _isLoading = true;
+  notifyListeners();
 
-    try {
-      _user = await _authService.login(username, password);
-      notifyListeners();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+  try {
+    final user = await _authService.login(username, password);
+    _user = user;
+  } catch (e) {
+    throw Exception('Error: $e');
+  } finally {
+    _isLoading = false;
+    notifyListeners();
   }
+  
+}
 
   Future<void> logout() async {
     _isLoading = true;
@@ -90,20 +94,9 @@ class AuthProvider with ChangeNotifier {
 
 Future<List<Map<String, dynamic>>> searchUsers(String query) async {
   try {
-    _isLoading = true;
-    notifyListeners();
-    
-    final users = await _authService.searchUsers(query);
-    
-    _isLoading = false;
-    notifyListeners();
-    
-    return users;
+    final results = await _authService.searchUsers(query);
+    return results;
   } catch (e) {
-    _isLoading = false;
-    notifyListeners();
-    
-    // Retornar una lista vacía en caso de error
     return [];
   }
 }
