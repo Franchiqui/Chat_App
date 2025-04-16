@@ -27,18 +27,25 @@ class GroupModel {
   });
 
   factory GroupModel.fromJson(Map<String, dynamic> json) {
+    // Manejo robusto del userId, puede venir como String o como Map
+    String? userId;
+    if (json['user'] is String) {
+      userId = json['user'];
+    } else if (json['user'] is Map && json['user']['id'] != null) {
+      userId = json['user']['id'].toString();
+    }
     return GroupModel(
-      id: json['id']as String,
+      id: json['id'] as String,
       miembros: json['Miembros'] ?? [],
-      userId: json['user']?['id']as String,
+      userId: userId,
       nombreGrupo: json['nombreGrupo'] as String,
-      groupName: json['groupName']as String,
-      fechaChat: json['fechaChat']as String,
-      horaChat: json['horaChat']as String,
-      ultimoMensaje: json['ultimoMensaje']as String,
+      groupName: json['groupName'] as String?,
+      fechaChat: json['fechaChat'] as String?,
+      horaChat: json['horaChat'] as String?,
+      ultimoMensaje: json['ultimoMensaje'] as String?,
       visto: json['visto'] ?? false,
       membersIds: json['members'] != null ? List<String>.from(json['members']) : null,
-      miembrosId: json['miembrosId']as String,
+      miembrosId: json['miembrosId'] as String?,
     );
   }
 }

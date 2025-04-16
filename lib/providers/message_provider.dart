@@ -1,12 +1,14 @@
 // lib/providers/message_provider.dart
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import '../services/message_service.dart';
+import '../services/message_service.dart' as msg_service;
+import '../services/message_service_audio.dart' as msg_audio_service;
 import '../config/pocketbase_config.dart';
 import '../models/message_model.dart';
 
 class MessageProvider with ChangeNotifier {
-  final MessageService _messageService = MessageService();
+  final msg_service.MessageService _messageService =
+      msg_service.MessageService();
   List<MessageModel> _messages = [];
   bool _isLoading = false;
   String? _currentChatId;
@@ -69,6 +71,28 @@ class MessageProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Envía un mensaje de audio grabado desde bytes (web y móvil)
+  Future<void> sendAudioBytesMessage({
+    required String chatId,
+    required String currentUserId,
+    required String otherUserId,
+    required Uint8List audioBytes,
+    required String fileName,
+    String? text,
+  }) async {
+    final message =
+        await msg_audio_service.MessageService().sendAudioBytesMessage(
+      chatId: chatId,
+      currentUserId: currentUserId,
+      otherUserId: otherUserId,
+      audioBytes: audioBytes,
+      fileName: fileName,
+      text: text,
+    );
+    _messages.add(message);
+    notifyListeners();
+  }
+
   Future<void> markMessageAsRead(String messageId) async {
     await _messageService.markMessageAsRead(messageId);
     final index = _messages.indexWhere((message) => message.id == messageId);
@@ -99,17 +123,20 @@ class MessageProvider with ChangeNotifier {
   }
 
   Future<void> addMessage(MessageModel message) async {
-    print('[MessageProvider] addMessage: idChat=[36m${message.idChat}[0m, currentChatId=$_currentChatId, id=${message.id}');
+    print(
+        '[MessageProvider] addMessage: idChat=[36m${message.idChat}[0m, currentChatId=$_currentChatId, id=${message.id}');
     if (message.idChat == _currentChatId) {
       if (!_messages.any((m) => m.id == message.id)) {
         // Obtener el mensaje expandido desde PocketBase
         try {
-          final pb = MessageService().pb;
-          final record = await pb.collection(PocketBaseConfig.messagesCollection)
+          final pb = _messageService.pb;
+          final record = await pb
+              .collection(PocketBaseConfig.messagesCollection)
               .getOne(message.id, expand: 'user1,user2');
           final expandedMessage = MessageModel.fromJson(record.toJson());
           _messages.add(expandedMessage);
-          print('[MessageProvider] Mensaje expandido agregado (${expandedMessage.id}). Total ahora: ${_messages.length}');
+          print(
+              '[MessageProvider] Mensaje expandido agregado (${expandedMessage.id}). Total ahora: ${_messages.length}');
           notifyListeners();
           print('[MessageProvider] notifyListeners después de addMessage');
         } catch (e) {
@@ -119,10 +146,12 @@ class MessageProvider with ChangeNotifier {
           notifyListeners();
         }
       } else {
-        print('[MessageProvider] Mensaje duplicado, no se agrega (${message.id})');
+        print(
+            '[MessageProvider] Mensaje duplicado, no se agrega (${message.id})');
       }
     } else {
-      print('[MessageProvider] Mensaje ignorado: idChat=${message.idChat} != $_currentChatId');
+      print(
+          '[MessageProvider] Mensaje ignorado: idChat=${message.idChat} != $_currentChatId');
     }
   }
 }

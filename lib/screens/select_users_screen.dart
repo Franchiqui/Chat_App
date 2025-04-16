@@ -23,6 +23,7 @@ class SelectUsersScreen extends StatefulWidget {
 
 class _SelectUsersScreenState extends State<SelectUsersScreen> {
   final Set<String> _selectedUserIds = {};
+  String _search = '';
 
   @override
   void initState() {
@@ -34,50 +35,77 @@ class _SelectUsersScreenState extends State<SelectUsersScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final usuarios = userProvider.usuarios
+    final todosUsuarios = userProvider.usuarios
         .where((u) => u.id != widget.currentUserId)
-        .toList(); // Excluir al usuario actual
+        .toList();
+    final usuarios = _search.isEmpty
+        ? todosUsuarios
+        : todosUsuarios.where((u) =>
+            u.username.toLowerCase().contains(_search.toLowerCase()) ||
+            u.displayName_A.toLowerCase().contains(_search.toLowerCase())
+          ).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Selecciona usuarios para el grupo'),
+        title: Text(widget.maxSeleccion == 1
+            ? 'Selecciona usuario para chat'
+            : 'Selecciona usuarios para el grupo'),
       ),
-      body: userProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : usuarios.isEmpty
-              ? const Center(child: Text('No hay usuarios disponibles.'))
-              : ListView.builder(
-                  itemCount: usuarios.length,
-                  itemBuilder: (context, index) {
-                    final usuario = usuarios[index];
-                    return CheckboxListTile(
-                      value: _selectedUserIds.contains(usuario.id),
-                      onChanged: (selected) {
-                        setState(() {
-                          if (selected == true) {
-                            if (widget.maxSeleccion == 1) {
-                              // Solo uno permitido, limpia y agrega el nuevo
-                              _selectedUserIds
-                                ..clear()
-                                ..add(usuario.id);
-                            } else {
-                              _selectedUserIds.add(usuario.id);
-                            }
-                          } else {
-                            _selectedUserIds.remove(usuario.id);
-                          }
-                        });
-                      },
-                      title: Text(usuario.displayName_A.isNotEmpty
-                          ? usuario.displayName_A
-                          : usuario.username),
-                      subtitle: Text(usuario.username),
-                      secondary: usuario.avatar != null && usuario.avatar!.isNotEmpty
-                          ? CircleAvatar(backgroundImage: NetworkImage(usuario.avatar!))
-                          : const CircleAvatar(child: Icon(Icons.person)),
-                    );
-                  },
-                ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: const InputDecoration(
+                hintText: 'Buscar usuario...',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _search = value;
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: userProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : usuarios.isEmpty
+                    ? const Center(child: Text('No hay usuarios disponibles.'))
+                    : ListView.builder(
+                        itemCount: usuarios.length,
+                        itemBuilder: (context, index) {
+                          final usuario = usuarios[index];
+                          return CheckboxListTile(
+                            value: _selectedUserIds.contains(usuario.id),
+                            onChanged: (selected) {
+                              setState(() {
+                                if (selected == true) {
+                                  if (widget.maxSeleccion == 1) {
+                                    _selectedUserIds
+                                      ..clear()
+                                      ..add(usuario.id);
+                                  } else {
+                                    _selectedUserIds.add(usuario.id);
+                                  }
+                                } else {
+                                  _selectedUserIds.remove(usuario.id);
+                                }
+                              });
+                            },
+                            title: Text(usuario.displayName_A.isNotEmpty
+                                ? usuario.displayName_A
+                                : usuario.username),
+                            subtitle: Text(usuario.username),
+                            secondary: usuario.avatar != null && usuario.avatar!.isNotEmpty
+                                ? CircleAvatar(backgroundImage: NetworkImage(usuario.avatar!))
+                                : const CircleAvatar(child: Icon(Icons.person)),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.check),
         onPressed: () async {

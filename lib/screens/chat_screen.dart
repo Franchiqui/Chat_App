@@ -11,6 +11,7 @@ import '../providers/chat_provider.dart';
 import '../providers/message_provider.dart';
 import '../models/message_model.dart';
 import '../widgets/message_bubble.dart';
+import '../services/file_upload_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -28,7 +29,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final PocketBase pb = PocketBaseConfig.pb;
-  bool _isRecording = false;
+
   bool _isAttaching = false;
 
   @override
@@ -295,17 +296,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     icon: Icons.image,
                     label: 'Imagen',
                     onTap: _pickImage,
-                  ),
-                  _buildAttachmentOption(
-                    icon: Icons.mic,
-                    label: 'Audio',
-                    onTap: () {
-                      // Implementar grabación de audio
-                      setState(() {
-                        _isRecording = !_isRecording;
-                      });
-                    },
-                    isActive: _isRecording,
                   ),
                   _buildAttachmentOption(
                     icon: Icons.attach_file,

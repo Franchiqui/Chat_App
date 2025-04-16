@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../config/pocketbase_config.dart';
 import '../models/message_model.dart';
+import 'audio_player_widget.dart';
 
 class MessageBubble extends StatelessWidget {
   final MessageModel message;
@@ -94,6 +95,18 @@ class MessageBubble extends StatelessWidget {
 
   Widget _buildMessageContent(BuildContext context, String baseUrl) {
     switch (message.tipo) {
+      case MessageType.audioVoz:
+        // Usa el campo mp3Url o filePath para construir la URL
+        String? audioUrl = message.mp3Url;
+        if ((audioUrl == null || audioUrl.isEmpty) && message.filePath != null) {
+          audioUrl = '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+        }
+        if (audioUrl != null && audioUrl.isNotEmpty) {
+          return AudioPlayerWidget(audioUrl: audioUrl);
+        } else {
+          return const Text('Audio no disponible');
+        }
+
       case MessageType.imagen:
         String? imageUrl;
         if (message.imagenUrl != null && message.imagenUrl!.isNotEmpty) {
