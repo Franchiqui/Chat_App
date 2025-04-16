@@ -1,9 +1,12 @@
 // lib/screens/chat_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:mime/mime.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:pocketbase/pocketbase.dart';
 import '../config/pocketbase_config.dart';
 import '../providers/auth_provider.dart';
@@ -66,11 +69,13 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _subscribeToMessages() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.user == null || !authProvider.isAuthenticated) {
+      // No suscribirse si no hay usuario autenticado
+      return;
+    }
     pb.collection(PocketBaseConfig.messagesCollection).subscribe('*', (e) {
       if (e.action != 'create') return;
-      // lib/screens/chat_screen.dart (continuación)
-      if (e.action != 'create') return;
-
       final message = MessageModel.fromJson(e.record!.toJson());
       if (message.idChat == widget.chatId) {
         Provider.of<MessageProvider>(context, listen: false)
@@ -171,32 +176,86 @@ class _ChatScreenState extends State<ChatScreen> {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
 
     if (result != null) {
-      File file = File(result.files.single.path!);
       final fileName = result.files.single.name;
       final extension = fileName.split('.').last.toLowerCase();
+
+      final mimeType = lookupMimeType(fileName);
 
       MessageType tipo;
       String messageText;
 
-      if (['mp3', 'wav', 'm4a', 'aac', 'ogg'].contains(extension)) {
-        tipo = MessageType.audio;
-        messageText = 'Audio';
-      } else if (['mp4', 'mov', 'avi', 'flv', 'wmv'].contains(extension)) {
+      // Soporte para imágenes
+      if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].contains(extension)) {
+        tipo = MessageType.imagen;
+        messageText = 'Imagen';
+      }
+      // Soporte para videos
+      else if (["mp4", "mov", "avi", "flv", "wmv", "mkv"].contains(extension)) {
         tipo = MessageType.video;
         messageText = 'Video';
-      } else {
-        tipo = MessageType.documento;
-        messageText = 'Documento: $fileName';
+      }
+      // Detección de audios
+      else if (["mp3", "wav", "m4a", "aac", "ogg"].contains(extension)) {
+        tipo = MessageType.audio;
+        messageText = 'Audio';
+      }
+      // Detección de documentos PERMITIDOS POR EL BACKEND
+      else if (["pdf", "txt", "html", "php"].contains(extension)) {
+        const allowedMimeTypes = [
+          'application/pdf',
+          'text/plain',
+          'text/html',
+          'text/x-php',
+        ];
+        if (mimeType != null && allowedMimeTypes.contains(mimeType)) {
+          tipo = MessageType.documento;
+          messageText = 'Documento: $fileName';
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content:
+                    Text('Solo se permiten documentos PDF, TXT, HTML o PHP.')),
+          );
+          return;
+        }
+      }
+      // Por defecto, mostrar error de tipo no soportado
+      else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tipo de archivo no soportado.')),
+        );
+        return;
       }
 
-      await messageProvider.sendFileMessage(
-        chatId: widget.chatId,
-        currentUserId: currentUserId,
-        otherUserId: otherUserId,
-        file: file,
-        tipo: tipo,
-        text: messageText,
-      );
+      if (kIsWeb) {
+        // En web usamos bytes y filename
+        final Uint8List? fileBytes = result.files.single.bytes;
+        if (fileBytes != null) {
+          await messageProvider.sendFileMessage(
+            chatId: widget.chatId,
+            currentUserId: currentUserId,
+            otherUserId: otherUserId,
+            file: fileBytes,
+            tipo: tipo,
+            text: messageText,
+            fileName: fileName,
+          );
+        }
+      } else {
+        // En móvil usamos File
+        final String? filePath = result.files.single.path;
+        if (filePath != null) {
+          final file = File(filePath);
+          await messageProvider.sendFileMessage(
+            chatId: widget.chatId,
+            currentUserId: currentUserId,
+            otherUserId: otherUserId,
+            file: file,
+            tipo: tipo,
+            text: messageText,
+          );
+        }
+      }
 
       await chatProvider.updateLastMessage(widget.chatId, messageText);
     }

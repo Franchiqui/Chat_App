@@ -1,5 +1,7 @@
 // lib/services/message_service.dart
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pocketbase/pocketbase.dart';
 import '../config/pocketbase_config.dart';
@@ -81,15 +83,20 @@ Future<MessageModel> sendTextMessage(String chatId, String currentUserId, String
     required String chatId,
     required String currentUserId,
     required String otherUserId,
-    required File file,
+    required dynamic file, // File (móvil) o Uint8List (web)
     required MessageType tipo,
     String? text,
+    String? fileName, // solo para web
   }) async {
     final now = DateTime.now();
     final fechaMensaje = "${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute}";
-    
-    final fileName = file.path.split('/').last;
-    
+    String nombreArchivo;
+    if (kIsWeb) {
+      nombreArchivo = fileName ?? 'archivo';
+    } else {
+      nombreArchivo = (file as File).path.split('/').last;
+    }
+
     final formData = {
       'user1': currentUserId,
       'user2': otherUserId,
@@ -100,27 +107,51 @@ Future<MessageModel> sendTextMessage(String chatId, String currentUserId, String
       'creado': true,
       'tipo': tipo.toString().split('.').last,
       'visto': false,
-      'fileName': fileName,
+      'fileName': nombreArchivo,
     };
-    
+
     // Dependiendo del tipo de archivo, lo agregamos al campo correspondiente
+    String campoArchivo;
     if (tipo == MessageType.imagen) {
-      formData['imagePath'] = file;
+      campoArchivo = 'imagePath';
     } else if (tipo == MessageType.video) {
-      formData['videoPath'] = file;
+      campoArchivo = 'videoPath';
     } else if (tipo == MessageType.audio || tipo == MessageType.audioVoz) {
-      formData['mp3'] = file;
+      campoArchivo = 'mp3';
     } else if (tipo == MessageType.documento) {
-      formData['documentoPath'] = file;
+      campoArchivo = 'documentoPath';
     } else {
-      formData['filePath'] = file;
+      campoArchivo = 'filePath';
     }
-    
+
+    if (!kIsWeb) {
+      formData[campoArchivo] = file; // Solo en móvil
+    }
+
+    List<http.MultipartFile> files = [];
+    if (kIsWeb) {
+      files.add(
+        http.MultipartFile.fromBytes(
+          campoArchivo,
+          file as Uint8List,
+          filename: nombreArchivo,
+        ),
+      );
+    } else {
+      files.add(
+        await http.MultipartFile.fromPath(
+          campoArchivo,
+          (file as File).path,
+          filename: nombreArchivo,
+        ),
+      );
+    }
+
     final record = await pb.collection(PocketBaseConfig.messagesCollection).create(
       body: formData,
-      files: [await http.MultipartFile.fromPath(fileName, file.path)],
+      files: files,
     );
-    
+
     return MessageModel.fromJson(record.toJson());
   }
 

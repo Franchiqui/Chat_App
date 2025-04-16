@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:mime/mime.dart';
 import 'package:pocketbase/pocketbase.dart';
 import '../config/pocketbase_config.dart';
 import '../providers/auth_provider.dart';
@@ -52,9 +53,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _subscribeToMessages() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.user == null || !authProvider.isAuthenticated) {
+      // No suscribirse si no hay usuario autenticado
+      return;
+    }
     pb.collection(PocketBaseConfig.groupMessagesCollection).subscribe('*', (e) {
       if (e.action != 'create') return;
-      
       final data = e.record!.toJson();
       if (data['grupo'] == widget.groupId || data['grupoId'] == widget.groupId) {
         Provider.of<GroupProvider>(context, listen: false).addGroupMessage(data);
@@ -123,24 +128,53 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
 
     if (result != null) {
-      File file = File(result.files.single.path!);
       final fileName = result.files.single.name;
       final extension = fileName.split('.').last.toLowerCase();
+      final mimeType = lookupMimeType(fileName);
 
       MessageType tipo;
       String messageText;
 
-      if (['mp3', 'wav', 'm4a', 'aac', 'ogg'].contains(extension)) {
-        tipo = MessageType.audio;
-        messageText = 'Audio';
-      } else if (['mp4', 'mov', 'avi', 'flv', 'wmv'].contains(extension)) {
+      // Soporte para imágenes
+      if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].contains(extension)) {
+        tipo = MessageType.imagen;
+        messageText = 'Imagen';
+      }
+      // Soporte para videos
+      else if (["mp4", "mov", "avi", "flv", "wmv", "mkv"].contains(extension)) {
         tipo = MessageType.video;
         messageText = 'Video';
+      }
+      // Soporte para audios
+      else if (["mp3", "wav", "m4a", "aac", "ogg"].contains(extension)) {
+        tipo = MessageType.audio;
+        messageText = 'Audio';
+      }
+      // Soporte para documentos permitidos
+      else if (["pdf", "txt", "html", "php"].contains(extension)) {
+        const allowedMimeTypes = [
+          'application/pdf',
+          'text/plain',
+          'text/html',
+          'text/x-php',
+        ];
+        if (mimeType != null && allowedMimeTypes.contains(mimeType)) {
+          tipo = MessageType.documento;
+          messageText = 'Documento: $fileName';
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tipo de documento no permitido. Solo PDF, TXT, HTML o PHP.')),
+          );
+          return;
+        }
       } else {
-        tipo = MessageType.documento;
-        messageText = 'Documento: $fileName';
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tipo de archivo no soportado.')),
+        );
+        return;
       }
 
+      File file = File(result.files.single.path!);
       await groupProvider.sendGroupMessage(
         groupId: widget.groupId,
         currentUserId: authProvider.user!.id,

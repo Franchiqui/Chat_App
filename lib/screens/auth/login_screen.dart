@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/config/pocketbase_config.dart';
 import 'package:pocketbase/pocketbase.dart' show UnsubscribeFunc;
-import 'package:pocketbase/src/auth_store.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'register_screen.dart';
@@ -49,11 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text.trim(),
       );
 
-      // Obtener el clientId después de iniciar sesión
-      final clientId = PocketBaseConfig.pb.authStore.clientId;
-
-      // Suscribirse a la colección 'messages' en tiempo real
-      _unsubscribe = PocketBaseConfig.pb.collection('messages').subscribe(clientId, (e) {
+      // Suscribirse a la colección 'messages' en tiempo real SOLO después de login exitoso
+      _unsubscribe = PocketBaseConfig.pb.collection('messages').subscribe('*', (e) {
         if (e.action == 'create') {
           print('Nuevo mensaje recibido: ${e.record}');
           // Aquí puedes agregar lógica adicional para manejar mensajes en tiempo real
@@ -164,8 +160,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
-
-extension on AuthStore {
-   get clientId => null;
 }

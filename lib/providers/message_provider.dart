@@ -1,5 +1,4 @@
 // lib/providers/message_provider.dart
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../services/message_service.dart' as msg_service;
 import '../services/message_service_audio.dart' as msg_audio_service;
@@ -55,9 +54,10 @@ class MessageProvider with ChangeNotifier {
     required String chatId,
     required String currentUserId,
     required String otherUserId,
-    required File file,
+    required dynamic file, // File o Uint8List
     required MessageType tipo,
     String? text,
+    String? fileName, // para web
   }) async {
     final message = await _messageService.sendFileMessage(
       chatId: chatId,
@@ -66,6 +66,7 @@ class MessageProvider with ChangeNotifier {
       file: file,
       tipo: tipo,
       text: text,
+      fileName: fileName,
     );
     _messages.add(message);
     notifyListeners();

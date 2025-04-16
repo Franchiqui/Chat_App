@@ -14,7 +14,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _showControls = true;
-  bool _isFullscreen = false;
   late VoidCallback _listener;
 
   @override
@@ -55,7 +54,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   void _enterFullscreen() async {
-    setState(() => _isFullscreen = true);
+
     await showDialog(
       context: context,
       barrierColor: Colors.black,
@@ -87,7 +86,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         );
       },
     );
-    setState(() => _isFullscreen = false);
+  
   }
 
   String _formatDuration(Duration d) {
@@ -167,14 +166,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(
-                    fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                    color: Colors.white,
-                    size: fullscreen ? 32 : 24,
-                  ),
-                  onPressed: fullscreen
-                      ? () => Navigator.of(context).maybePop()
-                      : _enterFullscreen,
+                  icon: const Icon(Icons.fullscreen, color: Colors.white, size: 24),
+                  onPressed: _enterFullscreen,
                 ),
               ],
             ),

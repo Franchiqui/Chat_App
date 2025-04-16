@@ -208,7 +208,7 @@ class MessageBubble extends StatelessWidget {
                 child: SizedBox(
                   height: 180,
                   width: double.infinity,
-                  child: VideoPlayerWidget(videoUrl: videoUrl),
+                  child: VideoPlayerWidget(videoUrl: videoUrl, fileName: message.fileName),
                 ),
               ),
             if (message.texto.isNotEmpty && message.texto != 'Video')
