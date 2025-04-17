@@ -1,5 +1,6 @@
 // lib/models/message_model.dart
 import '../config/pocketbase_config.dart';
+
 enum MessageType { texto, audioVoz, audio, imagen, video, documento }
 
 class MessageModel {
@@ -22,6 +23,7 @@ class MessageModel {
     }
     return null;
   }
+
   final String id;
   final String texto;
   final String user1;
@@ -109,6 +111,8 @@ class MessageModel {
       status: json['status'],
     );
   }
+
+  get senderId => null;
 
   static MessageType _parseMessageType(String? type) {
     switch (type) {

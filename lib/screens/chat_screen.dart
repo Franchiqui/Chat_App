@@ -290,7 +290,18 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentUserId = authProvider.user!.id;
     final isUser1 = chat.user1 == currentUserId;
     final displayName = isUser1 ? chat.displayNameB : chat.displayNameA;
-    final avatarUrl = isUser1 ? chat.fotoUrlB : chat.fotoUrlA;
+    final rawAvatarUrl = isUser1 ? chat.fotoUrlB : chat.fotoUrlA;
+    final pb = PocketBaseConfig.pb;
+    final baseUrl = pb.baseUrl;
+    String? avatarUrl;
+    if (rawAvatarUrl != null && rawAvatarUrl.isNotEmpty) {
+      if (rawAvatarUrl.startsWith('http')) {
+        avatarUrl = rawAvatarUrl;
+      } else {
+        final otherUserId = isUser1 ? chat.user2 : chat.user1;
+        avatarUrl = '$baseUrl/api/files/users/$otherUserId/$rawAvatarUrl';
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(

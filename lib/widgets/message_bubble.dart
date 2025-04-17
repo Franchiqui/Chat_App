@@ -30,10 +30,6 @@ class MessageBubble extends StatelessWidget {
         mainAxisAlignment:
             isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          if (!isMe) ...[
-            _buildAvatar(context),
-            const SizedBox(width: 8),
-          ],
           Container(
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * (message.tipo == MessageType.texto ? 0.7 : 0.5),
@@ -70,31 +66,11 @@ class MessageBubble extends StatelessWidget {
               ],
             ),
           ),
-          if (isMe) ...[
-            const SizedBox(width: 8),
-            _buildAvatar(context),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildAvatar(BuildContext context) {
-    // Intentar obtener el avatar del usuario remitente
-    String? avatar = message.senderAvatar;
-    // Si tienes el avatar en el modelo de mensaje, úsalo. Si no, usa un placeholder.
-    // Aquí puedes modificar para obtener el avatar real desde el modelo de mensaje si lo tienes.
-    // Ejemplo si tienes message.avatar:
-    // String? avatarUrl = message.avatar;
-    // Por ahora, avatarUrl será null y saldrá el placeholder.
-    return CircleAvatar(
-      radius: 18,
-      backgroundImage:
-          (avatar != null && avatar.isNotEmpty) ? NetworkImage(avatar) : null,
-      child:
-          (avatar == null || avatar.isEmpty) ? const Icon(Icons.person) : null,
-    );
-  }
 
   Widget _buildMessageContent(BuildContext context, String baseUrl) {
     switch (message.tipo) {
