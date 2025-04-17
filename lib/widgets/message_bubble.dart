@@ -5,6 +5,7 @@ import '../models/message_model.dart';
 import 'audio_player_widget.dart';
 import 'video_player_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'image_fullscreen_dialog.dart';
 
 class MessageBubble extends StatelessWidget {
   final MessageModel message;
@@ -35,7 +36,7 @@ class MessageBubble extends StatelessWidget {
           ],
           Container(
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.7,
+              maxWidth: MediaQuery.of(context).size.width * (message.tipo == MessageType.texto ? 0.7 : 0.5),
             ),
             decoration: BoxDecoration(
               color: isMe ? Colors.blue : Colors.grey[300],
@@ -127,37 +128,52 @@ class MessageBubble extends StatelessWidget {
             if (imageUrl != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
+                child: GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: true,
+                      builder: (_) => ImageFullscreenDialog(
+                        imageUrl: imageUrl!,
+                        heroTag: imageUrl,
                       ),
                     );
                   },
-                  errorBuilder: (context, error, stackTrace) {
-                    // Si el error es 404 o cualquier otro, muestra mensaje amigable
-                    return Container(
-                      height: 150,
-                      color: Colors.grey[300],
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.broken_image, color: Colors.red, size: 40),
-                          SizedBox(height: 8),
-                          Text('Imagen no disponible',
-                              style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    );
-                  },
+                  child: Hero(
+                    tag: imageUrl!,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        // Si el error es 404 o cualquier otro, muestra mensaje amigable
+                        return Container(
+                          height: 150,
+                          color: Colors.grey[300],
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.broken_image, color: Colors.red, size: 40),
+                              SizedBox(height: 8),
+                              Text('Imagen no disponible',
+                                  style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             if (message.texto.isNotEmpty && message.texto != 'Imagen')

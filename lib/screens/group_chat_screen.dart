@@ -12,6 +12,7 @@ import '../config/pocketbase_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/group_provider.dart';
 import '../models/message_model.dart';
+import '../widgets/image_fullscreen_dialog.dart';
 
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
@@ -300,68 +301,40 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
               color: Colors.grey[200],
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildAttachmentOption(
-                    icon: Icons.image,
-                    label: 'Imagen',
-                    onTap: _pickImage,
+                  IconButton(
+                    icon: Icon(
+                      _isAttaching ? Icons.close : Icons.add,
+                      color: Colors.blue,
+                    ),
+                    onPressed: _showAttachmentOptions,
                   ),
-                  _buildAttachmentOption(
-                    icon: Icons.mic,
-                    label: 'Audio',
-                    onTap: () {
-                      // Implementar grabación de audio
-                      setState(() {
-                        _isRecording = !_isRecording;
-                      });
-                    },
-                    isActive: _isRecording,
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: const InputDecoration(
+                        hintText: 'Escribe un mensaje...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(30.0)),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 10.0),
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
                   ),
-                  _buildAttachmentOption(
-                    icon: Icons.attach_file,
-                    label: 'Archivo',
-                    onTap: _pickFile,
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Colors.blue),
+                    onPressed: _sendMessage,
                   ),
                 ],
               ),
             ),
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(
-                    _isAttaching ? Icons.close : Icons.add,
-                    color: Colors.blue,
-                  ),
-                  onPressed: _showAttachmentOptions,
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: const InputDecoration(
-                      hintText: 'Escribe un mensaje...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20.0, vertical: 10.0),
-                    ),
-                    textCapitalization: TextCapitalization.sentences,
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Colors.blue),
-                  onPressed: _sendMessage,
-                ),
-              ],
-            ),
-          ),
+          
         ],
       ),
     );
@@ -399,7 +372,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             ),
           Container(
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.7,
+              maxWidth: MediaQuery.of(context).size.width * (tipo == 'texto' ? 0.7 : 0.5),
             ),
             decoration: BoxDecoration(
               color: isMe ? Colors.blue : Colors.grey[300],
@@ -447,170 +420,25 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     bool isMe,
   ) {
     switch (tipo) {
-      case 'imagen':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (imagenUrl != null && imagenUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  imagenUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    );
-                  },
-                ),
-              )
-            else if (filePath != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: Image.network(
-                  '$baseUrl/api/files/${PocketBaseConfig.groupMessagesCollection}/${filePath}',
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            if (texto.isNotEmpty && texto != 'Imagen')
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  texto,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-          ],
-        );
-
-      case 'audio':
-      case 'audioVoz':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-              decoration: BoxDecoration(
-                color: isMe ? Colors.blue.shade800 : Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.play_arrow,
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Audio',
-                    style: TextStyle(
-                      color: isMe ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (texto.isNotEmpty && texto != 'Audio')
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  texto,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-          ],
-        );
-
-      case 'video':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.play_circle_fill,
-                  color: Colors.white,
-                  size: 50,
-                ),
-              ),
-            ),
-            if (texto.isNotEmpty && texto != 'Video')
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  texto,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-          ],
-        );
-
       case 'documento':
-        final fileName =
-            texto.startsWith('Documento: ') ? texto.substring(11) : 'Documento';
-
+        final fileName = filePath?.split('/')?.last ?? 'Documento';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10.0),
-              decoration: BoxDecoration(
-                color: isMe ? Colors.blue.shade800 : Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.insert_drive_file,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      fileName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                Icon(Icons.insert_drive_file, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    fileName,
+                    style: const TextStyle(
+                      color: Colors.white,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
             if (texto.isNotEmpty && !texto.startsWith('Documento:'))
               Padding(
@@ -626,13 +454,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         );
 
       case 'texto':
-      default:
+      case 'video':
         return Text(
           texto,
           style: TextStyle(
             color: isMe ? Colors.white : Colors.black,
           ),
         );
+      default:
+        return const SizedBox.shrink();
     }
   }
 
