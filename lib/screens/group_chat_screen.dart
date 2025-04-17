@@ -52,7 +52,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Future<void> _loadMessages() async {
     await Provider.of<GroupProvider>(context, listen: false)
         .getGroupMessages(widget.groupId);
-    _scrollToBottom();
+    Future.delayed(const Duration(milliseconds: 400), _scrollToBottom);
   }
 
   void _subscribeToMessages() {
@@ -68,7 +68,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           data['grupoId'] == widget.groupId) {
         Provider.of<GroupProvider>(context, listen: false)
             .addGroupMessage(data);
-        _scrollToBottom();
+        Future.delayed(const Duration(milliseconds: 200), _scrollToBottom);
       }
     });
   }

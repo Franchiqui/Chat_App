@@ -1,5 +1,6 @@
 // lib/providers/message_provider.dart
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../services/message_service.dart' as msg_service;
 import '../services/message_service_audio.dart' as msg_audio_service;
 import '../config/pocketbase_config.dart';
@@ -58,18 +59,28 @@ class MessageProvider with ChangeNotifier {
     required MessageType tipo,
     String? text,
     String? fileName, // para web
+    BuildContext? context, // Para feedback visual
   }) async {
-    final message = await _messageService.sendFileMessage(
-      chatId: chatId,
-      currentUserId: currentUserId,
-      otherUserId: otherUserId,
-      file: file,
-      tipo: tipo,
-      text: text,
-      fileName: fileName,
-    );
-    _messages.add(message);
-    notifyListeners();
+    try {
+      final message = await _messageService.sendFileMessage(
+        chatId: chatId,
+        currentUserId: currentUserId,
+        otherUserId: otherUserId,
+        file: file,
+        tipo: tipo,
+        text: text,
+        fileName: fileName,
+      );
+      _messages.add(message);
+      notifyListeners();
+    } catch (e) {
+      if (context != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al enviar archivo: ' + e.toString())),
+        );
+      }
+      rethrow;
+    }
   }
 
   /// Envía un mensaje de audio grabado desde bytes (web y móvil)

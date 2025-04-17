@@ -40,6 +40,8 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadMessages();
       _subscribeToMessages(); // Suscribirse a cambios en tiempo real
+      // Scroll automático al último mensaje después de cargar mensajes
+      Future.delayed(const Duration(milliseconds: 400), _scrollToBottom);
     });
   }
 
@@ -87,7 +89,7 @@ class _ChatScreenState extends State<ChatScreen> {
               .updateLastMessage(widget.chatId, message.texto);
         }
 
-        _scrollToBottom();
+        Future.delayed(const Duration(milliseconds: 200), _scrollToBottom);
       }
     });
   }
@@ -96,7 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_scrollController.hasClients) {
       Future.delayed(const Duration(milliseconds: 100), () {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          _scrollController.position.maxScrollExtent + 100,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -129,13 +131,13 @@ class _ChatScreenState extends State<ChatScreen> {
     );
 
     await chatProvider.updateLastMessage(widget.chatId, text);
+    _scrollToBottom();
   }
 
   Future<void> _pickImage() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    final messageProvider =
-        Provider.of<MessageProvider>(context, listen: false);
+    final messageProvider = Provider.of<MessageProvider>(context, listen: false);
 
     final chat = chatProvider.getChatById(widget.chatId);
     if (chat == null || authProvider.user == null) return;
@@ -143,29 +145,53 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentUserId = authProvider.user!.id;
     final otherUserId = chat.user1 == currentUserId ? chat.user2 : chat.user1;
 
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
-    if (image != null) {
-      final file = File(image.path);
-      await messageProvider.sendFileMessage(
-        chatId: widget.chatId,
-        currentUserId: currentUserId,
-        otherUserId: otherUserId,
-        file: file,
-        tipo: MessageType.imagen,
-        text: 'Imagen',
+    if (kIsWeb) {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
       );
-
-      await chatProvider.updateLastMessage(widget.chatId, 'Imagen');
+      if (result != null && result.files.single.bytes != null) {
+        final Uint8List fileBytes = result.files.single.bytes!;
+        final String fileName = result.files.single.name;
+        await messageProvider.sendFileMessage(
+          chatId: widget.chatId,
+          currentUserId: currentUserId,
+          otherUserId: otherUserId,
+          file: fileBytes,
+          fileName: fileName,
+          tipo: MessageType.imagen,
+          text: 'Imagen',
+          context: context,
+        );
+        await chatProvider.updateLastMessage(widget.chatId, 'Imagen');
+        _scrollToBottom();
+      }
+    } else {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        final file = File(image.path);
+        final fileName = image.name;
+        await messageProvider.sendFileMessage(
+          chatId: widget.chatId,
+          currentUserId: currentUserId,
+          otherUserId: otherUserId,
+          file: file,
+          fileName: fileName,
+          tipo: MessageType.imagen,
+          text: 'Imagen',
+          context: context,
+        );
+        await chatProvider.updateLastMessage(widget.chatId, 'Imagen');
+        _scrollToBottom();
+      }
     }
   }
 
   Future<void> _pickFile() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    final messageProvider =
-        Provider.of<MessageProvider>(context, listen: false);
+    final messageProvider = Provider.of<MessageProvider>(context, listen: false);
 
     final chat = chatProvider.getChatById(widget.chatId);
     if (chat == null || authProvider.user == null) return;
@@ -173,14 +199,14 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentUserId = authProvider.user!.id;
     final otherUserId = chat.user1 == currentUserId ? chat.user2 : chat.user1;
 
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-    if (result != null) {
+    if (kIsWeb) {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        withData: true,
+      );
+      if (result == null) return;
       final fileName = result.files.single.name;
       final extension = fileName.split('.').last.toLowerCase();
-
       final mimeType = lookupMimeType(fileName);
-
       MessageType tipo;
       String messageText;
 
@@ -188,19 +214,13 @@ class _ChatScreenState extends State<ChatScreen> {
       if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].contains(extension)) {
         tipo = MessageType.imagen;
         messageText = 'Imagen';
-      }
-      // Soporte para videos
-      else if (["mp4", "mov", "avi", "flv", "wmv", "mkv"].contains(extension)) {
+      } else if (["mp4", "mov", "avi", "flv", "wmv", "mkv"].contains(extension)) {
         tipo = MessageType.video;
         messageText = 'Video';
-      }
-      // Detección de audios
-      else if (["mp3", "wav", "m4a", "aac", "ogg"].contains(extension)) {
+      } else if (["mp3", "wav", "m4a", "aac", "ogg"].contains(extension)) {
         tipo = MessageType.audio;
         messageText = 'Audio';
-      }
-      // Detección de documentos PERMITIDOS POR EL BACKEND
-      else if (["pdf", "txt", "html", "php"].contains(extension)) {
+      } else if (["pdf", "txt", "html", "php"].contains(extension)) {
         const allowedMimeTypes = [
           'application/pdf',
           'text/plain',
@@ -212,59 +232,101 @@ class _ChatScreenState extends State<ChatScreen> {
           messageText = 'Documento: $fileName';
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content:
-                    Text('Solo se permiten documentos PDF, TXT, HTML o PHP.')),
+            const SnackBar(content: Text('Solo se permiten documentos PDF, TXT, HTML o PHP.')),
           );
           return;
         }
-      }
-      // Por defecto, mostrar error de tipo no soportado
-      else {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Tipo de archivo no soportado.')),
         );
         return;
       }
 
-      if (kIsWeb) {
-        // En web usamos bytes y filename
-        final Uint8List? fileBytes = result.files.single.bytes;
-        if (fileBytes == null) {
+      final Uint8List? fileBytes = result.files.single.bytes;
+      if (fileBytes == null || fileName.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo leer el archivo o el nombre es inválido.')),
+        );
+        return;
+      }
+      await messageProvider.sendFileMessage(
+        chatId: widget.chatId,
+        currentUserId: currentUserId,
+        otherUserId: otherUserId,
+        file: fileBytes,
+        fileName: fileName,
+        tipo: tipo,
+        text: messageText,
+        context: context,
+      );
+      await chatProvider.updateLastMessage(widget.chatId, messageText);
+      _scrollToBottom();
+    } else {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result == null) return;
+      final fileName = result.files.single.name;
+      final extension = fileName.split('.').last.toLowerCase();
+      final mimeType = lookupMimeType(fileName);
+      MessageType tipo;
+      String messageText;
+
+      // Soporte para imágenes
+      if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].contains(extension)) {
+        tipo = MessageType.imagen;
+        messageText = 'Imagen';
+      } else if (["mp4", "mov", "avi", "flv", "wmv", "mkv"].contains(extension)) {
+        tipo = MessageType.video;
+        messageText = 'Video';
+      } else if (["mp3", "wav", "m4a", "aac", "ogg"].contains(extension)) {
+        tipo = MessageType.audio;
+        messageText = 'Audio';
+      } else if (["pdf", "txt", "html", "php"].contains(extension)) {
+        const allowedMimeTypes = [
+          'application/pdf',
+          'text/plain',
+          'text/html',
+          'text/x-php',
+        ];
+        if (mimeType != null && allowedMimeTypes.contains(mimeType)) {
+          tipo = MessageType.documento;
+          messageText = 'Documento: $fileName';
+        } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No se pudo leer el archivo.')),
+            const SnackBar(content: Text('Solo se permiten documentos PDF, TXT, HTML o PHP.')),
           );
           return;
         }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tipo de archivo no soportado.')),
+        );
+        return;
+      }
+
+      final String? filePath = result.files.single.path;
+      if (filePath != null && filePath.isNotEmpty && fileName.isNotEmpty) {
+        final file = File(filePath);
         await messageProvider.sendFileMessage(
           chatId: widget.chatId,
           currentUserId: currentUserId,
           otherUserId: otherUserId,
-          file: fileBytes,
+          file: file,
+          fileName: fileName,
           tipo: tipo,
           text: messageText,
-          fileName: fileName,
+          context: context,
         );
+        await chatProvider.updateLastMessage(widget.chatId, messageText);
+        _scrollToBottom();
       } else {
-        // En móvil usamos File
-        final String? filePath = result.files.single.path;
-        if (filePath != null) {
-          final file = File(filePath);
-          await messageProvider.sendFileMessage(
-            chatId: widget.chatId,
-            currentUserId: currentUserId,
-            otherUserId: otherUserId,
-            file: file,
-            tipo: tipo,
-            text: messageText,
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo leer el archivo o el nombre es inválido.')),
+        );
+        return;
       }
-
-      await chatProvider.updateLastMessage(widget.chatId, messageText);
     }
   }
-
   void _showAttachmentOptions() {
     setState(() {
       _isAttaching = !_isAttaching;

@@ -75,29 +75,92 @@ class MessageBubble extends StatelessWidget {
   Widget _buildMessageContent(BuildContext context, String baseUrl) {
     switch (message.tipo) {
       case MessageType.audioVoz:
-        // Usa el campo mp3Url o filePath para construir la URL
-        String? audioUrl = message.mp3Url;
-        if ((audioUrl == null || audioUrl.isEmpty) &&
-            message.filePath != null) {
-          audioUrl =
-              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
-        }
+        String? audioUrl = message.audioUrl;
         if (audioUrl != null && audioUrl.isNotEmpty) {
           return AudioPlayerWidget(audioUrl: audioUrl);
         } else {
           return const Text('Audio no disponible');
         }
 
-      case MessageType.imagen:
-        String? imageUrl;
-        if (message.imagenUrl != null && message.imagenUrl!.isNotEmpty) {
-          imageUrl = message.imagenUrl;
-        } else if (message.filePath != null) {
-          // Construir URL usando el ID de mensaje y el path del archivo
-          imageUrl =
-              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
+      case MessageType.texto:
+        return Text(
+          message.texto,
+          style: TextStyle(
+            color: isMe ? Colors.white : Colors.black,
+          ),
+        );
+
+      case MessageType.video:
+        String? videoUrl = message.videoUrl;
+        if (videoUrl != null && videoUrl.isNotEmpty) {
+          return VideoPlayerWidget(videoUrl: videoUrl, fileName: message.fileName);
+        } else {
+          return const Text('Video no disponible');
         }
 
+      case MessageType.documento:
+        String? documentUrl = message.documentUrl;
+        return Container(
+          decoration: BoxDecoration(
+            color: isMe ? Colors.blue[50] : Colors.grey[200],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildFileIcon(message.fileName ?? 'documento'),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message.fileName ?? 'Documento',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[900],
+                        fontSize: 15,
+                        decoration: documentUrl != null && documentUrl.isNotEmpty
+                            ? TextDecoration.underline
+                            : TextDecoration.none,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (documentUrl != null && documentUrl.isNotEmpty)
+                      GestureDetector(
+                        onTap: () async {
+                          if (await canLaunchUrl(Uri.parse(documentUrl))) {
+                            await launchUrl(Uri.parse(documentUrl), mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: Row(
+                          children: const [
+                            Icon(Icons.open_in_new, color: Colors.blue, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              'Abrir',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      
+    
+
+      case MessageType.imagen:
+        String? imageUrl = message.imageUrl;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -110,45 +173,31 @@ class MessageBubble extends StatelessWidget {
                       context: context,
                       barrierDismissible: true,
                       builder: (_) => ImageFullscreenDialog(
-                        imageUrl: imageUrl!,
+                        imageUrl: imageUrl,
                         heroTag: imageUrl,
                       ),
                     );
                   },
-                  child: Hero(
-                    tag: imageUrl!,
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        // Si el error es 404 o cualquier otro, muestra mensaje amigable
-                        return Container(
-                          height: 150,
-                          color: Colors.grey[300],
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.broken_image, color: Colors.red, size: 40),
-                              SizedBox(height: 8),
-                              Text('Imagen no disponible',
-                                  style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    height: 220,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 150,
+                        color: Colors.grey[300],
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.broken_image, color: Colors.red, size: 40),
+                            SizedBox(height: 8),
+                            Text('Imagen no disponible',
+                                style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -166,170 +215,14 @@ class MessageBubble extends StatelessWidget {
         );
 
       case MessageType.audio:
-        String? audioUrl = message.mp3Url;
-        if ((audioUrl == null || audioUrl.isEmpty) &&
-            message.filePath != null) {
-          audioUrl =
-              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
-        }
+        String? audioUrl = message.audioUrl;
         if (audioUrl != null && audioUrl.isNotEmpty) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AudioPlayerWidget(audioUrl: audioUrl, fileName: message.fileName),
-              if (message.texto.isNotEmpty &&
-                  message.texto != 'Audio' &&
-                  message.texto != 'audioVoz')
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    message.texto,
-                    style: TextStyle(
-                      color: isMe ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-            ],
-          );
+          return AudioPlayerWidget(audioUrl: audioUrl, fileName: message.fileName);
         } else {
           return const Text('Audio no disponible');
         }
 
-      case MessageType.video:
-        String? videoUrl;
-        if (message.videoUrl != null && message.videoUrl!.isNotEmpty) {
-          videoUrl = message.videoUrl;
-        } else if (message.filePath != null) {
-          videoUrl =
-              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (videoUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: SizedBox(
-                  height: 180,
-                  width: double.infinity,
-                  child: VideoPlayerWidget(
-                      videoUrl: videoUrl, fileName: message.fileName),
-                ),
-              ),
-            if (message.texto.isNotEmpty && message.texto != 'Video')
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  message.texto,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-          ],
-        );
-
-      case MessageType.documento:
-        String? docUrl;
-        if (message.documentUrl != null && message.documentUrl!.isNotEmpty) {
-          docUrl = message.documentUrl;
-        } else if (message.filePath != null) {
-          docUrl =
-              '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/${message.id}/${message.filePath}';
-        }
-        // Detectar si es un archivo de audio por extensión
-        final audioExtensions = [
-          'mp3',
-          'wav',
-          'ogg',
-          'm4a',
-          'aac',
-          'flac',
-          'amr'
-        ];
-        final isAudio = message.fileName != null &&
-            audioExtensions
-                .contains(message.fileName!.split('.').last.toLowerCase());
-        if (isAudio && docUrl != null) {
-          // Mostrar reproductor de audio en vez de solo icono
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AudioPlayerWidget(audioUrl: docUrl, fileName: message.fileName),
-              if (message.texto.isNotEmpty &&
-                  !message.texto.startsWith('Documento:'))
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    message.texto,
-                    style: TextStyle(
-                      color: isMe ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-            ],
-          );
-        }
-        // Si no es audio, mostrar como documento normal
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: docUrl != null
-                  ? () async {
-                      final uri = Uri.parse(docUrl!);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri,
-                            mode: LaunchMode.externalApplication);
-                      }
-                    }
-                  : null,
-              child: Container(
-                padding: const EdgeInsets.all(10.0),
-                decoration: BoxDecoration(
-                  color: isMe ? Colors.blue.shade800 : Colors.grey.shade400,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildFileIcon(message.fileName ?? 'Documento'),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        message.fileName ?? 'Documento',
-                        style: const TextStyle(
-                          color: Colors.white,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (docUrl != null)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 6.0),
-                        child: Icon(Icons.open_in_new,
-                            color: Colors.white, size: 18),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            if (message.texto.isNotEmpty &&
-                !message.texto.startsWith('Documento:'))
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  message.texto,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black,
-                  ),
-                ),
-              ),
-          ],
-        );
-
       case MessageType.texto:
-      default:
         return Text(
           message.texto,
           style: TextStyle(

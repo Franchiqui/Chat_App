@@ -7,7 +7,7 @@ class MessageModel {
   // Devuelve la URL del video si existe, si no la construye a partir de filePath
   String? get videoUrl {
     if (mensajeUrl != null && mensajeUrl!.isNotEmpty) return mensajeUrl;
-    if (filePath != null && tipo == MessageType.video) {
+    if (filePath != null && (tipo == MessageType.video || tipo == MessageType.imagen || tipo == MessageType.audio || tipo == MessageType.audioVoz || tipo == MessageType.documento)) {
       final baseUrl = PocketBaseConfig.pb.baseUrl;
       return '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/$id/$filePath';
     }
@@ -17,7 +17,27 @@ class MessageModel {
   // Devuelve la URL del documento si existe, si no la construye a partir de filePath
   String? get documentUrl {
     if (mensajeUrl != null && mensajeUrl!.isNotEmpty) return mensajeUrl;
-    if (filePath != null && tipo == MessageType.documento) {
+    if (filePath != null && (tipo == MessageType.documento || tipo == MessageType.imagen || tipo == MessageType.video || tipo == MessageType.audio || tipo == MessageType.audioVoz)) {
+      final baseUrl = PocketBaseConfig.pb.baseUrl;
+      return '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/$id/$filePath';
+    }
+    return null;
+  }
+
+  // Devuelve la URL de la imagen si existe, si no la construye a partir de filePath
+  String? get imageUrl {
+    if (imagenUrl != null && imagenUrl!.isNotEmpty) return imagenUrl;
+    if (filePath != null && (tipo == MessageType.imagen || tipo == MessageType.video || tipo == MessageType.documento || tipo == MessageType.audio || tipo == MessageType.audioVoz)) {
+      final baseUrl = PocketBaseConfig.pb.baseUrl;
+      return '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/$id/$filePath';
+    }
+    return null;
+  }
+
+  // Devuelve la URL del audio si existe, si no la construye a partir de filePath
+  String? get audioUrl {
+    if (mp3Url != null && mp3Url!.isNotEmpty) return mp3Url;
+    if (filePath != null && (tipo == MessageType.audio || tipo == MessageType.audioVoz || tipo == MessageType.imagen || tipo == MessageType.video || tipo == MessageType.documento)) {
       final baseUrl = PocketBaseConfig.pb.baseUrl;
       return '$baseUrl/api/files/${PocketBaseConfig.messagesCollection}/$id/$filePath';
     }

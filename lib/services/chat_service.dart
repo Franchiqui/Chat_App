@@ -98,7 +98,39 @@ class ChatService {
   }
 }
 
-  // Crear nuevo chat
+  /// Limpia chats duplicados entre dos usuarios, dejando solo el más reciente
+  Future<void> cleanDuplicateChats(String user1Id, String user2Id) async {
+    // Busca todos los chats entre ambos usuarios (en ambos órdenes)
+    final result1 = await pb.collection(PocketBaseConfig.chatsCollection).getList(
+      filter: 'user1 = "$user1Id" && user2 = "$user2Id"',
+      sort: '-created',
+    );
+    final result2 = await pb.collection(PocketBaseConfig.chatsCollection).getList(
+      filter: 'user1 = "$user2Id" && user2 = "$user1Id"',
+      sort: '-created',
+    );
+    final allChats = [...result1.items, ...result2.items];
+    if (allChats.length > 1) {
+      // Mantener solo el más reciente
+      final chatsSorted = List.from(allChats)
+        ..sort((a, b) => b.created.compareTo(a.created));
+      final keepChat = chatsSorted.first;
+      final toDelete = chatsSorted.skip(1);
+      for (final chat in toDelete) {
+        try {
+          await pb.collection(PocketBaseConfig.chatsCollection).delete(chat.id);
+          print('[CLEANUP] Chat duplicado eliminado: ${chat.id}');
+        } catch (e) {
+          print('[CLEANUP] Error eliminando chat duplicado: $e');
+        }
+      }
+      print('[CLEANUP] Solo se mantiene el chat: ${keepChat.id}');
+    } else {
+      print('[CLEANUP] No hay duplicados entre $user1Id y $user2Id');
+    }
+  }
+
+  // Crear nuevo chat (mejorado para evitar duplicados)
   Future<ChatModel> createChat(UserModel currentUser, UserModel otherUser) async {
     final now = DateTime.now();
     final fecha = "${now.day}/${now.month}/${now.year}";
@@ -116,6 +148,14 @@ class ChatService {
     };
     print('[DEBUG][ChatService] Datos enviados a PocketBase:');
     print(data);
+    // Antes de crear, limpia duplicados
+    await cleanDuplicateChats(currentUser.id, otherUser.id);
+    // Vuelve a buscar si quedó solo uno
+    final existing = await findChatBetweenUsers(currentUser.id, otherUser.id);
+    if (existing != null) {
+      print('[DEBUG][ChatService] Ya existe chat tras limpieza: ${existing.id}');
+      return existing;
+    }
     final record = await pb.collection(PocketBaseConfig.chatsCollection).create(body: data);
     print('[DEBUG][ChatService] Registro creado PocketBase:');
     print(record.toJson());
