@@ -47,13 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       // Suscribirse a la colección 'messages' en tiempo real SOLO después de login exitoso
-      _unsubscribe =
-          PocketBaseConfig.pb.collection('messages').subscribe('*', (e) {
+      _unsubscribe = await PocketBaseConfig.pb.collection('messages').subscribe('*', (e) {
         if (e.action == 'create') {
           print('Nuevo mensaje recibido: ${e.record}');
           // Aquí puedes agregar lógica adicional para manejar mensajes en tiempo real
         }
-      }) as UnsubscribeFunc;
+      });
 
       // Navegar a la pantalla principal después de iniciar sesión
       Navigator.of(context).pushReplacement(

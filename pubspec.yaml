@@ -59,7 +59,7 @@ dependencies:
   url_launcher: ^6.3.1
 
   video_player: ^2.9.5
-  mime: ^1.0.4
+  mime: ^2.0.0
 
 
   # The following adds the Cupertino Icons font to your application.
