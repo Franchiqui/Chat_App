@@ -58,11 +58,26 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       print('Cargando mensajes para el chat: ${widget.chatId}'); // Depuración
 
-      await Provider.of<MessageProvider>(context, listen: false)
-          .getChatMessages(widget.chatId);
+      final messageProvider = Provider.of<MessageProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUserId = authProvider.user?.id;
 
-      print(
-          'Mensajes cargados: ${Provider.of<MessageProvider>(context, listen: false).messages.length}'); // Depuración
+      await messageProvider.getChatMessages(widget.chatId);
+
+      // Marcar como vistos todos los mensajes recibidos no vistos
+      if (currentUserId != null) {
+        for (final msg in messageProvider.messages) {
+          print('[VISTO][LOAD] Mensaje: id=${msg.id}, userId=${msg.userId}, currentUserId=$currentUserId, visto=${msg.visto}');
+          if ((msg.userId ?? '').isNotEmpty && msg.userId != currentUserId && !msg.visto) {
+            print('[VISTO][LOAD] Marcando como visto: ${msg.id}');
+            await messageProvider.markMessageAsRead(msg.id);
+          }
+        }
+        // Forzar refresco de mensajes tras marcar como visto
+        await messageProvider.getChatMessages(widget.chatId);
+      }
+
+      print('Mensajes cargados: ${messageProvider.messages.length}'); // Depuración
 
       _scrollToBottom();
     } catch (e) {
@@ -76,10 +91,19 @@ class _ChatScreenState extends State<ChatScreen> {
       // No suscribirse si no hay usuario autenticado
       return;
     }
-    pb.collection(PocketBaseConfig.messagesCollection).subscribe('*', (e) {
+    pb.collection(PocketBaseConfig.messagesCollection).subscribe('*', (e) async {
       if (e.action != 'create') return;
       final message = MessageModel.fromJson(e.record!.toJson());
       if (message.idChat == widget.chatId) {
+        final currentUserId = authProvider.user!.id;
+        // Si el mensaje es recibido y no está visto, márcalo como visto
+        print('[VISTO][REALTIME] Mensaje: id=${message.id}, userId=${message.userId}, currentUserId=$currentUserId, visto=${message.visto}');
+        if ((message.userId ?? '').isNotEmpty && message.userId != currentUserId && !message.visto) {
+          print('[VISTO][REALTIME] Marcando como visto: ${message.id}');
+          await Provider.of<MessageProvider>(context, listen: false).markMessageAsRead(message.id);
+          // Forzar refresco de mensajes tras marcar como visto
+          await Provider.of<MessageProvider>(context, listen: false).getChatMessages(widget.chatId);
+        }
         Provider.of<MessageProvider>(context, listen: false)
             .addMessage(message);
 

@@ -69,6 +69,7 @@ dependencies:
   flutter_sound: ^9.28.0
   record: ^6.0.0
   just_audio: ^0.10.0
+  camera: ^0.11.1
 
 
 dependency_overrides:

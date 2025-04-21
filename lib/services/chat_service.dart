@@ -11,52 +11,53 @@ class ChatService {
   // Obtener todos los chats del usuario
   Future<List<ChatModel>> getUserChats(String userId) async {
   try {
-    final List<ChatModel> chats = [];
-    
     // Buscar chats donde el usuario actual es user1
     final resultUser1 = await pb.collection(PocketBaseConfig.chatsCollection).getList(
       filter: 'user1 = "$userId"',
-      sort: '-horaChat', // Ordenar por hora del último mensaje
-      expand: 'user1,user2', // Expandir datos de usuarios
+      sort: '-horaChat',
+      expand: 'user1,user2',
     );
-    
     // Buscar chats donde el usuario actual es user2
     final resultUser2 = await pb.collection(PocketBaseConfig.chatsCollection).getList(
       filter: 'user2 = "$userId"',
-      sort: '-horaChat', // Ordenar por hora del último mensaje
-      expand: 'user1,user2', // Expandir datos de usuarios
+      sort: '-horaChat',
+      expand: 'user1,user2',
     );
-    
-    // Convertir resultados a modelos de chat
-    for (var item in resultUser1.items) {
-      chats.add(ChatModel.fromJson(item.toJson()));
+
+    // Combinar ambos resultados
+    final allChats = [...resultUser1.items, ...resultUser2.items];
+    // Filtrar solo chats donde el usuario realmente es user1 o user2
+    final filteredChats = allChats.where((item) {
+      final user1 = item.data['user1'];
+      final user2 = item.data['user2'];
+      return user1 == userId || user2 == userId;
+    }).toList();
+
+    // Eliminar duplicados por id
+    final uniqueChats = <String, ChatModel>{};
+    for (var item in filteredChats) {
+      final chat = ChatModel.fromJson(item.toJson());
+      uniqueChats[chat.id] = chat;
     }
-    for (var item in resultUser2.items) {
-      chats.add(ChatModel.fromJson(item.toJson()));
-    }
-    
+    final chats = uniqueChats.values.toList();
+
     // Ordenar por la hora del último mensaje (más reciente primero)
     chats.sort((a, b) {
       if (a.fechaChat == null || b.fechaChat == null) return 0;
       if (a.horaChat == null || b.horaChat == null) return 0;
-      
       final aParts = a.fechaChat!.split('/');
       final bParts = b.fechaChat!.split('/');
-      
       if (aParts.length != 3 || bParts.length != 3) return 0;
-      
       final aDate = DateTime(
         int.parse(aParts[2]), // año
         int.parse(aParts[1]), // mes
         int.parse(aParts[0]), // día
       );
-      
       final bDate = DateTime(
         int.parse(bParts[2]), // año
         int.parse(bParts[1]), // mes
         int.parse(bParts[0]), // día
       );
-      
       final aTimeParts = a.horaChat!.split(':');
       final bTimeParts = b.horaChat!.split(':');
       
